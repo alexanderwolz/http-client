@@ -1,4 +1,4 @@
-package de.alexanderwolz.http.client.model
+package de.alexanderwolz.http.client
 
 data class Body(val type: ContentType, val content: ByteArray) {
 

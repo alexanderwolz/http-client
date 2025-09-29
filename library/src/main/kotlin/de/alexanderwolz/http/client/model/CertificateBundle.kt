@@ -1,4 +1,4 @@
-package de.alexanderwolz.http.client.model
+package de.alexanderwolz.http.client
 
 import java.security.PrivateKey
 import java.security.cert.Certificate

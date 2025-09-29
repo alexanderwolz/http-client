@@ -1,23 +1,32 @@
 plugins {
-    kotlin("jvm") version "2.2.10"
+    kotlin("jvm") version "2.2.10" apply false
+    id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
 }
 
-group = "de.alexanderwolz"
-version = "1.0-SNAPSHOT"
+allprojects {
 
-repositories {
-    mavenCentral()
+    group = "de.alexanderwolz"
+    version = "1.0.0"
+
+    repositories {
+        mavenCentral()
+    }
 }
 
-dependencies {
-    api("org.slf4j:slf4j-api:2.0.17")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    testImplementation(kotlin("test"))
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
+        }
+    }
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
-kotlin {
-    jvmToolchain(22)
+subprojects {
+    //exclude the example project
+    if (name == "example") {
+        tasks.withType<PublishToMavenRepository> {
+            enabled = false
+        }
+    }
 }

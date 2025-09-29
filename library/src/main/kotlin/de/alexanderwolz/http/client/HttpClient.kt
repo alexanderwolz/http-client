@@ -1,7 +1,7 @@
 package de.alexanderwolz.http.client
 
 import de.alexanderwolz.http.client.log.Logger
-import de.alexanderwolz.http.client.model.CertificateBundle
+import de.alexanderwolz.http.de.alexanderwolz.http.client.SslSocket
 import okhttp3.OkHttpClient
 import java.net.InetSocketAddress
 import java.net.Proxy
@@ -26,6 +26,7 @@ class HttpClient {
     private val okHttpClient = createOkHttpClient()
 
     private fun createOkHttpClient(bundle: CertificateBundle? = null): OkHttpClient {
+        logger.trace { "creating new HTTP client" }
         val builder = OkHttpClient.Builder()
 
         val proxyURI = URI.create("http://localhost:9090")
