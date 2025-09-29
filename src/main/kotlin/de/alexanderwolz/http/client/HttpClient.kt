@@ -84,17 +84,9 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         okRequestBuilder.method(request.method.name, okRequestBody)
 
         val okRequest = okRequestBuilder.build()
+        logRequest(okRequest)
 
         try {
-            logger.trace {
-                val builder = StringBuilder("Executing request at ${Date()}:\n")
-                builder.appendLine("  Method:  ${okRequest.method}")
-                builder.appendLine("  URL:     ${okRequest.url}")
-                val headers = okRequest.headers.toMultimap().entries.joinToString()
-                builder.appendLine("  Headers: $headers")
-                builder.append("  Body:    ${getBodyString(okRequest.body)}")
-                builder.toString()
-            }
             okHttpClient.newCall(okRequest).execute().use { okResponse ->
                 val body = okResponse.body?.let { okBody ->
                     val byteArray = okBody.source().use { it.readByteArray() }
@@ -111,20 +103,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
                     okResponse.headers.toMultimap(),
                     body,
                     Response.Source(okRequest, okResponse)
-                ).apply {
-                    logger.trace {
-                        val builder = StringBuilder("Received server response at ${Date()}:")
-                        builder.append("\n  Response")
-                        builder.append("\n    Status:  $code")
-                        builder.append("\n    Headers: $headers")
-                        builder.append("\n    Message: ${message?.let { it.ifEmpty { "No message" } } ?: "No message"}")
-                        builder.append("\n    Body:    ${body?.let { "${it.content.size} bytes" } ?: ": No body"}")
-                        if (body != null) {
-                            builder.append("\n${body.content.decodeToString()}")
-                        }
-                        builder.toString()
-                    }
-                }
+                ).also { logResponse(it) }
             }
         } catch (e: IOException) {
             val code = Reason.CODE_CLIENT_ERROR
@@ -133,28 +112,64 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         }
     }
 
-    private fun getBodyString(body: RequestBody?): String {
+    private fun logRequest(okRequest: okhttp3.Request) {
+        logger.trace {
+            val builder = StringBuilder("Executing request at ${Date()}:")
+            builder.append("\n\tRequest")
+            builder.append("\n\t\tMethod:  ${okRequest.method}")
+            builder.append("\n\t\tURL:     ${okRequest.url}")
+            val headers = okRequest.headers.toMultimap().entries.joinToString()
+            builder.append("\n\t\tHeaders: $headers")
+            builder.append("\n\t\tBody:    ${request.body?.let { "${it.type}" } ?: ": No body"}")
+            if (request.body != null) {
+                getBodyString(request.body).lines().forEach { builder.append("\n\t\t\t$it") }
+            }
+            builder.toString()
+        }
+    }
+
+    private fun logResponse(response: Response<*>) {
+        logger.trace {
+            val builder = StringBuilder("Received server response at ${Date()}:")
+            builder.append("\n\tResponse")
+            builder.append("\n\t\tStatus:  ${response.code}")
+            builder.append("\n\t\tMessage: ${response.message?.let { it.ifEmpty { "No message" } } ?: "No message"}")
+            builder.append("\n\t\tHeaders: ${response.headers}")
+            builder.append("\n\t\tBody:    ${response.body?.let { "${it.type}" } ?: ": No body"}")
+            if (response.body != null) {
+                getBodyString(response.body).lines().forEach { builder.append("\n\t\t\t$it") }
+            }
+
+            builder.toString()
+        }
+    }
+
+    private fun getBodyString(body: Payload<*>?): String {
         if (body == null) {
             return "No body"
         }
 
-        val builder = StringBuilder("contentType: '${body.contentType()}'")
+        val builder = StringBuilder()
 
-        if (body is FormBodyOK) {
-            builder.append(" ")
-            for (i in 0..<body.size) {
+        if (body is FormPayload) {
+            body.content.entries.forEachIndexed { i, entry ->
                 if (i > 0) {
                     builder.append(" ")
                 }
-                builder.append("${body.name(i)}=[${body.value(i)}]")
-                if (i < body.size - 1) {
+                builder.append("${entry.key}=${entry.value}")
+                if (i < body.content.size - 1) {
                     builder.append(",")
                 }
-
             }
         }
 
-        //TODO add other bodies
+        if (body is StringPayload) {
+            builder.append(body.content)
+        }
+
+        if (body is ByteArrayPayload) {
+            builder.append(body.content.decodeToString())
+        }
 
         return builder.toString()
     }
