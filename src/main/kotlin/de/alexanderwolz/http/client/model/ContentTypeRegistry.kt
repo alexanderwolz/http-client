@@ -9,24 +9,31 @@ object ContentTypeRegistry {
 
     private val contentTypes = HashMap<String, ContentType>()
 
-    fun register(contentType: ContentType) {
-        contentTypes[contentType.mediaType] = contentType
-    }
-
     fun register(mediaType: String, clazz: KClass<*>): ContentType {
-        logger.debug { "Registering content type: $mediaType to ${clazz.qualifiedName}" }
         val contentType = object : ContentType {
             override val mediaType = mediaType
             override val clazz = clazz
         }
-        contentTypes[contentType.mediaType] = contentType
+        return register(contentType)
+    }
+
+    fun register(contentType: ContentType): ContentType {
+        logger.debug { "Registering content type: ${contentType.mediaType} to ${contentType.clazz.qualifiedName}" }
+        val normalizedMediaType = getNormalized(contentType.mediaType)
+        if (contentTypes.containsKey(normalizedMediaType)) {
+            throw IllegalArgumentException("Content type '$contentType' is already registered")
+        }
+        contentTypes[normalizedMediaType] = contentType
         return contentType
     }
 
     fun find(mediaType: String): ContentType {
-        val normalized = mediaType.trim().split(";").first()
-        return contentTypes[normalized]
+        return contentTypes[getNormalized(mediaType)]
             ?: throw NoSuchElementException("No content type is registered for '$mediaType'")
+    }
+
+    private fun getNormalized(mediaType: String): String {
+        return mediaType.trim().split(";").first()
     }
 
 }

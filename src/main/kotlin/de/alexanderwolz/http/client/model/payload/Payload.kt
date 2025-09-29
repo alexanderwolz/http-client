@@ -1,8 +1,8 @@
-package de.alexanderwolz.http.client.model.body
+package de.alexanderwolz.http.client.model.payload
 
 import de.alexanderwolz.http.client.model.ContentType
 
-interface Body<T> {
+interface Payload<T> {
     val type: ContentType
     val content: T
 }

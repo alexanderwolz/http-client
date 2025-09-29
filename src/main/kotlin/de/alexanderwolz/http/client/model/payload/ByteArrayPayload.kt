@@ -1,14 +1,14 @@
-package de.alexanderwolz.http.client.model.body
+package de.alexanderwolz.http.client.model.payload
 
 import de.alexanderwolz.http.client.model.ContentType
 
-data class ByteArrayBody(override val type: ContentType, override val content: ByteArray) : Body<ByteArray> {
+data class ByteArrayPayload(override val type: ContentType, override val content: ByteArray) : Payload<ByteArray> {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as ByteArrayBody
+        other as ByteArrayPayload
 
         if (type != other.type) return false
         if (!content.contentEquals(other.content)) return false

@@ -1,13 +1,16 @@
 package de.alexanderwolz.http.client.model
 
-import de.alexanderwolz.http.client.model.body.Body
+import de.alexanderwolz.http.client.model.payload.Payload
 
-data class Response(
+data class Response<T>(
     val request: Request,
     val code: Int,
     val message: String?,
     val headers: Map<String, List<String>>,
-    val body: Body<*>?,
+    val body: Payload<T>?,
+    val source: Source
 ) {
     val isOK = code in 200..299
+
+    class Source(request: Any, response: Any)
 }

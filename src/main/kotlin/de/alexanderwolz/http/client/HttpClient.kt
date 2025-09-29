@@ -3,21 +3,21 @@ package de.alexanderwolz.http.client
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.log.Logger
-import de.alexanderwolz.http.client.model.body.Body
-import de.alexanderwolz.http.client.model.body.ByteArrayBody
+import de.alexanderwolz.http.client.model.payload.ByteArrayPayload
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
 import de.alexanderwolz.http.client.model.ContentType
 import de.alexanderwolz.http.client.model.ContentTypeRegistry
-import de.alexanderwolz.http.client.model.body.FormBody
+import de.alexanderwolz.http.client.model.payload.FormPayload
 import de.alexanderwolz.http.client.model.Method
 import de.alexanderwolz.http.client.model.OAuthTokenResponse
+import de.alexanderwolz.http.client.model.payload.Payload
 import de.alexanderwolz.http.client.model.Request
 import de.alexanderwolz.http.client.model.Response
-import de.alexanderwolz.http.client.model.body.StringBody
+import de.alexanderwolz.http.client.model.payload.StringPayload
 import de.alexanderwolz.http.client.utils.CertificateUtils
 import de.alexanderwolz.http.client.utils.StringUtils
-import de.alexanderwolz.http.de.alexanderwolz.http.client.SslSocket
+import de.alexanderwolz.http.client.socket.SslSocket
 import okhttp3.FormBody as FormBodyOK
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -38,17 +38,19 @@ import java.util.concurrent.TimeUnit
 import javax.net.ssl.*
 
 //This class is intended to wrap HTTP libraries, in this case OKHTTP
-class HttpClient private constructor(val request: Request, private val token: OAuthTokenResponse?) {
+class HttpClient private constructor(val proxy: URI?, val request: Request, private val token: OAuthTokenResponse?) {
 
     private val logger = Logger(javaClass)
 
-    fun execute(): Response {
-        val okHttpClient = createOkHttpClient(request.certificates)
+    fun execute(): Response<ByteArray> {
+
+        val okHttpClient = createOkHttpClient(request.certificates, proxy)
 
         val okRequestBuilder = okhttp3.Request.Builder().url(request.endpoint.toURL())
         request.headers.forEach {
             okRequestBuilder.header(it.key, it.value.joinToString())
         }
+
         token?.let {
             //overwrite Authorization header if accessToken is given
             okRequestBuilder.header(
@@ -59,7 +61,7 @@ class HttpClient private constructor(val request: Request, private val token: OA
 
         val okRequestBody = request.body?.let {
             when (it) {
-                is FormBody -> {
+                is FormPayload -> {
                     val builder = FormBodyOK.Builder()
                     it.content.forEach { entry ->
                         builder.add(entry.key, entry.value)
@@ -67,7 +69,11 @@ class HttpClient private constructor(val request: Request, private val token: OA
                     builder.build()
                 }
 
-                is StringBody -> {
+                is StringPayload -> {
+                    it.content.toRequestBody(it.type.mediaType.toMediaType())
+                }
+
+                is ByteArrayPayload -> {
                     it.content.toRequestBody(it.type.mediaType.toMediaType())
                 }
 
@@ -95,14 +101,15 @@ class HttpClient private constructor(val request: Request, private val token: OA
                         ContentTypeRegistry.find(mediaType)
                     } ?: ContentType.TEXT
                     //TODO determine Body by content type and parse content
-                    ByteArrayBody(contentType, byteArray)
+                    ByteArrayPayload(contentType, byteArray)
                 }
                 return Response(
                     request,
                     okResponse.code,
                     okResponse.message,
                     okResponse.headers.toMultimap(),
-                    body
+                    body,
+                    Response.Source(okRequest, okResponse)
                 ).apply {
                     logger.trace {
                         val builder = StringBuilder("Received server response at ${Date()}:")
@@ -146,17 +153,17 @@ class HttpClient private constructor(val request: Request, private val token: OA
             }
         }
 
-        //TODO
+        //TODO add other bodies
+
         return builder.toString()
     }
 
-    private fun createOkHttpClient(bundle: CertificateBundle? = null, proxyUri: URI? = null): OkHttpClient {
+    private fun createOkHttpClient(bundle: CertificateBundle? = null, proxy: URI? = null): OkHttpClient {
         val builder = OkHttpClient.Builder()
 
-        proxyUri?.let { uri ->
+        proxy?.let { uri ->
             val type = Proxy.Type.valueOf(uri.scheme.uppercase())
-            val proxy = Proxy(type, InetSocketAddress(uri.host, uri.port))
-            builder.proxy(proxy)
+            builder.proxy(Proxy(type, InetSocketAddress(uri.host, uri.port)))
         }
 
         builder.connectTimeout(10, TimeUnit.SECONDS)
@@ -238,11 +245,12 @@ class HttpClient private constructor(val request: Request, private val token: OA
         private var method: Method = Method.GET
         private var endpoint: URI? = null
         private val requestHeaders = HashMap<String, Set<String>>()
-        private var requestBody: Body<*>? = null
+        private var requestBody: Payload<*>? = null
         private var certificateBundle: CertificateBundle? = null
         private var certificateReference: CertificateReference? = null
         private var certFolder: File? = null
         private var token: OAuthTokenResponse? = null
+        private var proxy: URI? = null
 
         init {
             headers(
@@ -275,20 +283,26 @@ class HttpClient private constructor(val request: Request, private val token: OA
             }
         }
 
-        fun body(form: Map<String, String>, type: ContentType? = null) = apply {
-            this.requestBody = FormBody(type ?: ContentType.FORM, form).also {
+        fun body(payload: Payload<*>) = apply {
+            this.requestBody = payload.also {
                 headers("Content-Type" to setOf(it.type.mediaType))
             }
         }
 
+        fun body(form: Map<String, String>, type: ContentType? = null) = apply {
+            this.body(FormPayload(type ?: ContentType.FORM, form))
+        }
+
         fun body(content: String, type: ContentType) = apply {
-            this.requestBody = StringBody(type, content).also {
-                headers("Content-Type" to setOf(it.type.mediaType))
-            }
+            this.body(StringPayload(type, content))
         }
 
         fun token(token: OAuthTokenResponse) = apply {
             this.token = token
+        }
+
+        fun proxy(proxy: URI) = apply {
+            this.proxy = proxy
         }
 
         fun build(): HttpClient {
@@ -296,9 +310,9 @@ class HttpClient private constructor(val request: Request, private val token: OA
                 throw IllegalStateException("Either bundle or reference can be specified")
             }
             val endpoint = requireNotNull(endpoint)
-            val bundle = certificateReference?.let { resolveReference(it) } ?: certificateBundle
-            val request = Request(method, endpoint, requestHeaders, requestBody, bundle)
-            return HttpClient(request, token)
+            val certificates = certificateReference?.let { resolveReference(it) } ?: certificateBundle
+            val request = Request(method, endpoint, requestHeaders, requestBody, certificates)
+            return HttpClient(proxy, request, token)
         }
 
         private fun resolveEndpoint(endpoint: URI, params: Map<String, String>): URI {
