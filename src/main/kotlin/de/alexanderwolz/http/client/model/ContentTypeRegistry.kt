@@ -13,6 +13,7 @@ object ContentTypeRegistry {
         val contentType = object : ContentType {
             override val mediaType = mediaType
             override val clazz = clazz
+            override fun toString() = "[$mediaType -> ${clazz.simpleName}]"
         }
         return register(contentType)
     }

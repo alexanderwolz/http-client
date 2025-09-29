@@ -23,6 +23,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.internal.userAgent
 import okio.IOException
 import java.io.File
 import java.net.InetSocketAddress
@@ -255,8 +256,12 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         init {
             headers(
                 "Accept-Charset" to setOf("UTF-8"),
-                "Accept-Language" to setOf("en-US")
+                "Accept-Language" to setOf("en-US"),
             )
+        }
+
+        fun userAgent(userAgent: String) = apply {
+            headers("User-Agent" to setOf(userAgent))
         }
 
         fun method(method: Method) = apply {
