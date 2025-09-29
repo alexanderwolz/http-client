@@ -60,6 +60,10 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             )
         }
 
+        request.acceptTypes?.let { types ->
+            okRequestBuilder.header("Accept", types.joinToString { it.mediaType })
+        }
+
         val okRequestBody = request.body?.let {
             when (it) {
                 is FormPayload -> {
@@ -262,6 +266,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         private var endpoint: URI? = null
         private val requestHeaders = HashMap<String, Set<String>>()
         private var requestBody: Payload<*>? = null
+        private var acceptTypes: Set<ContentType>? = null
         private var certificateBundle: CertificateBundle? = null
         private var certificateReference: CertificateReference? = null
         private var certFolder: File? = null
@@ -295,6 +300,10 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
 
         fun certificates(reference: CertificateReference?) = apply {
             this.certificateReference = reference
+        }
+
+        fun accept(vararg contentTypes: ContentType) = apply {
+            this.acceptTypes = contentTypes.toSet()
         }
 
         fun headers(vararg pairs: Pair<String, Set<String>>) = apply {
@@ -331,7 +340,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             }
             val endpoint = requireNotNull(endpoint)
             val certificates = certificateReference?.let { resolveReference(it) } ?: certificateBundle
-            val request = Request(method, endpoint, requestHeaders, requestBody, certificates)
+            val request = Request(method, endpoint, requestHeaders, requestBody, acceptTypes, certificates)
             return HttpClient(proxy, request, token)
         }
 

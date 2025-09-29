@@ -1,7 +1,10 @@
 package de.alexanderwolz.http.client
 
 import de.alexanderwolz.http.client.model.ContentType
+import de.alexanderwolz.http.client.model.ContentTypeRegistry
 import de.alexanderwolz.http.client.model.Method
+import de.alexanderwolz.http.client.model.payload.ByteArrayPayload
+import de.alexanderwolz.http.client.model.payload.StringPayload
 import org.junit.jupiter.api.Test
 import java.net.URI
 
@@ -36,7 +39,7 @@ class HttpClientTest {
             .userAgent(HttpClient::class.java.simpleName)
             .method(Method.POST)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
-            .headers("Accept" to setOf(ContentType.JSON.mediaType))
+            .accept(ContentType.JSON)
             .body(payload, ContentType.JSON)
             .build()
         val response = httpClient.execute()
@@ -49,5 +52,31 @@ class HttpClientTest {
             println(response.body?.content?.decodeToString())
         }
     }
+
+    @Test
+    fun testCustomContentType() {
+        val type = ContentTypeRegistry.register("application/custom_v1+xml", Custom::class)
+        val content = Custom("test").toString()
+        val payload = ByteArrayPayload(type, content.toByteArray())
+
+        val httpClient = HttpClient.Builder()
+            .userAgent(HttpClient::class.java.simpleName)
+            .method(Method.POST)
+            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .accept(type)
+            .body(payload)
+            .build()
+        val response = httpClient.execute()
+        println("Status: ${response.code}")
+        if (response.isOK && response.body != null && response.body.type == ContentType.JSON) {
+            println("YAY!")
+            println(response.body.content.decodeToString())
+        } else {
+            println("OH NO!")
+            println(response.body?.content?.decodeToString())
+        }
+    }
+
+    private data class Custom(val name: String)
 
 }
