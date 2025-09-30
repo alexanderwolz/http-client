@@ -6,10 +6,8 @@ import de.alexanderwolz.http.client.log.Logger
 import de.alexanderwolz.http.client.model.*
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
-import de.alexanderwolz.http.client.model.payload.ByteArrayPayload
-import de.alexanderwolz.http.client.model.payload.FormPayload
 import de.alexanderwolz.http.client.model.payload.Payload
-import de.alexanderwolz.http.client.model.payload.StringPayload
+import de.alexanderwolz.http.client.model.payload.PayloadImpl
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import de.alexanderwolz.http.client.model.type.ContentType
 import de.alexanderwolz.http.client.socket.SslSocket
@@ -84,38 +82,25 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         }
     }
 
-    private fun convertToOkBody(payload: Payload<*>): RequestBody {
+    private fun convertToOkBody(payload: Payload): RequestBody {
         val type = payload.type
-        return when (payload) {
-            is FormPayload -> {
+        return when (val element = payload.type.converter.deserialize(payload.bytes)) {
+            is Form -> {
                 val builder = FormBodyOK.Builder()
-                payload.content.entries.forEach { entry ->
+                element.entries.forEach { entry ->
                     builder.add(entry.key, entry.value)
                 }
                 builder.build()
             }
 
-            is StringPayload -> {
-                payload.content.toRequestBody(type.mediaType.toMediaType())
-            }
-
-            is ByteArrayPayload -> {
-                payload.content.toRequestBody(type.mediaType.toMediaType())
-            }
-
             else -> {
                 logger.trace { "Custom payload: $payload" }
-                serialize(payload).toRequestBody(type.mediaType.toMediaType())
+                payload.bytes.toRequestBody(type.mediaType.toMediaType())
             }
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun serialize(payload: Payload<Any>): ByteArray {
-        return payload.type.converter.serialize(payload as Payload<Nothing>)
-    }
-
-    private fun convertBody(okResponse: okhttp3.Response): Payload<*>? {
+    private fun convertBody(okResponse: okhttp3.Response): Payload? {
         okResponse.body?.let { okBody ->
             val bytes = okBody.source().use { it.readByteArray() }
             val mediaType = okResponse.headers["content-type"]
@@ -126,13 +111,15 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
                 val contentType = acceptTypes.find { it.mediaType.startsWith(normalized) }
                 if (contentType != null) {
                     logger.trace { "Found content type in specified accept types" }
-                    return contentType.converter.deserialize(contentType, bytes)
+                    //return contentType.converter.deserialize(contentType, bytes)
+                    return PayloadImpl(contentType, bytes)
                 } else {
                     logger.warn { "Could not determine content-type from request accept types (${request.acceptTypes?.joinToString()})" }
                     val basicType = BasicContentTypes.entries.find { it.mediaType.startsWith(normalized) }
                     if (basicType != null) {
                         logger.trace { "Found basic content type: $basicType" }
-                        return basicType.converter.deserialize(basicType, bytes)
+                        //return basicType.converter.deserialize(basicType, bytes)
+                        return PayloadImpl(basicType, bytes)
                     } else {
                         logger.warn { "Could not determine content-type from basic types" }
                         logger.warn { "Consider setting the appropriate accept type using ${Builder::class}" }
@@ -265,7 +252,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         private var method: Method = Method.GET
         private var endpoint: URI? = null
         private val requestHeaders = HashMap<String, Set<String>>()
-        private var requestBody: Payload<*>? = null
+        private var requestBody: Payload? = null
         private var acceptTypes: Set<ContentType>? = null
         private var certificateBundle: CertificateBundle? = null
         private var certificateReference: CertificateReference? = null
@@ -312,18 +299,10 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             }
         }
 
-        fun body(payload: Payload<*>) = apply {
+        fun body(payload: Payload) = apply {
             this.requestBody = payload.also {
                 headers("Content-Type" to setOf(it.type.mediaType))
             }
-        }
-
-        fun body(form: Form, type: ContentType? = null) = apply {
-            this.body(FormPayload(type ?: BasicContentTypes.FORM_URL_ENCODED, form))
-        }
-
-        fun body(content: String, type: ContentType) = apply {
-            this.body(StringPayload(type, content))
         }
 
         fun token(token: OAuthTokenResponse) = apply {

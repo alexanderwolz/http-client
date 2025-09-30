@@ -3,13 +3,13 @@ package de.alexanderwolz.http.client.model.type
 import com.google.gson.JsonElement
 import de.alexanderwolz.http.client.model.Form
 import de.alexanderwolz.http.client.model.converter.BasicConverters
-import de.alexanderwolz.http.client.model.converter.IConverter
+import de.alexanderwolz.http.client.model.converter.Converter
 import kotlin.reflect.KClass
 
 enum class BasicContentTypes(
     override val mediaType: String,
     override val clazz: KClass<*>,
-    override val converter: IConverter<*>
+    override val converter: Converter<*>
 ) : ContentType {
     TEXT("text/plain", String::class, BasicConverters.STRING),
     XML("text/xml", String::class, BasicConverters.STRING),
