@@ -1,13 +1,13 @@
 package de.alexanderwolz.http.client
 
+import com.google.gson.JsonElement
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.log.Logger
 import de.alexanderwolz.http.client.model.*
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
-import de.alexanderwolz.http.client.model.payload.Payload
-import de.alexanderwolz.http.client.model.payload.PayloadImpl
+import de.alexanderwolz.http.client.model.Payload
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import de.alexanderwolz.http.client.model.type.ContentType
 import de.alexanderwolz.http.client.socket.SslSocket
@@ -19,6 +19,7 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.IOException
 import java.io.File
+import java.io.Serializable
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI
@@ -84,17 +85,24 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
 
     private fun convertToOkBody(payload: Payload): RequestBody {
         val type = payload.type
-        return when (val element = payload.type.converter.deserialize(payload.bytes)) {
+        return when (payload.element) {
             is Form -> {
                 val builder = FormBodyOK.Builder()
-                element.entries.forEach { entry ->
+                payload.element.entries.forEach { entry ->
                     builder.add(entry.key, entry.value)
                 }
                 builder.build()
             }
 
+            is String -> {
+                payload.element.toRequestBody(type.mediaType.toMediaType())
+            }
+
+            is JsonElement -> {
+                payload.element.asString.toRequestBody(type.mediaType.toMediaType())
+            }
+
             else -> {
-                logger.trace { "Custom payload: $payload" }
                 payload.bytes.toRequestBody(type.mediaType.toMediaType())
             }
         }
@@ -112,14 +120,14 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
                 if (contentType != null) {
                     logger.trace { "Found content type in specified accept types" }
                     //return contentType.converter.deserialize(contentType, bytes)
-                    return PayloadImpl(contentType, bytes)
+                    return Payload(contentType, bytes)
                 } else {
                     logger.warn { "Could not determine content-type from request accept types (${request.acceptTypes?.joinToString()})" }
                     val basicType = BasicContentTypes.entries.find { it.mediaType.startsWith(normalized) }
                     if (basicType != null) {
                         logger.trace { "Found basic content type: $basicType" }
                         //return basicType.converter.deserialize(basicType, bytes)
-                        return PayloadImpl(basicType, bytes)
+                        return Payload(basicType, bytes)
                     } else {
                         logger.warn { "Could not determine content-type from basic types" }
                         logger.warn { "Consider setting the appropriate accept type using ${Builder::class}" }

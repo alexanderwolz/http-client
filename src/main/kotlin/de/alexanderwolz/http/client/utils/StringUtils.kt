@@ -1,6 +1,6 @@
 package de.alexanderwolz.http.client.utils
 
-import de.alexanderwolz.http.client.model.payload.*
+import de.alexanderwolz.http.client.model.Payload
 import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern

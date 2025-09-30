@@ -14,6 +14,7 @@ enum class BasicContentTypes(
     TEXT("text/plain", String::class, BasicConverters.STRING),
     XML("text/xml", String::class, BasicConverters.STRING),
     HTML("text/html", String::class, BasicConverters.STRING),
-    JSON("application/json", JsonElement::class, BasicConverters.JSON),
+    JSON_ELEMENT("application/json", JsonElement::class, BasicConverters.JSON_ELEMENT),
+    JSON_TEXT("application/json", String::class, BasicConverters.STRING),
     FORM_URL_ENCODED("application/x-www-form-urlencoded", Form::class, BasicConverters.FORM);
 }

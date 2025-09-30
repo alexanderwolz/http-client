@@ -1,7 +1,6 @@
 package de.alexanderwolz.http.client.model
 
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
-import de.alexanderwolz.http.client.model.payload.Payload
 import de.alexanderwolz.http.client.model.type.ContentType
 import java.net.URI
 
