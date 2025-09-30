@@ -1,6 +1,8 @@
 package de.alexanderwolz.http.client
 
 import com.google.gson.JsonElement
+import de.alexanderwolz.http.client.exception.HttpExecutionException
+import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.model.Method
 import de.alexanderwolz.http.client.model.converter.IConverter
 import de.alexanderwolz.http.client.model.payload.JsonPayload
@@ -9,6 +11,7 @@ import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import de.alexanderwolz.http.client.model.type.ContentType
 import org.junit.jupiter.api.Test
 import java.net.URI
+import java.net.UnknownHostException
 import kotlin.reflect.KClass
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -17,7 +20,7 @@ import kotlin.test.assertTrue
 class HttpClientTest {
 
     @Test
-    fun testSimpleGet() {
+    fun testSimpleGetWithStatus200() {
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(Method.GET)
@@ -33,6 +36,24 @@ class HttpClientTest {
         println(response.body.content.javaClass)
         println(response.body.content)
         assertIs<JsonPayload>(response.body)
+    }
+
+    @Test
+    fun testSimpleGetWithUnknownHostException() {
+        val httpClient = HttpClient.Builder()
+            .userAgent(HttpClient::class.java.simpleName)
+            .method(Method.GET)
+            .endpoint(URI.create("https://this.shoud.not.exist.com/doesNotExist"))
+            .accept(BasicContentTypes.JSON)
+            .build()
+        try {
+            httpClient.execute()
+        } catch (e: HttpExecutionException) {
+            e.printStackTrace()
+            assertTrue { e.reason.code == Reason.CODE_CLIENT_ERROR }
+            assertTrue { e.cause is UnknownHostException }
+            assertTrue { e.reason.description == e.cause?.message }
+        }
     }
 
     @Test
@@ -105,14 +126,13 @@ class HttpClientTest {
         };
 
         val customNameConverter = object : IConverter<CustomName> {
-            override fun serialize(type: ContentType, payload: Payload<CustomName>): ByteArray {
+            override fun serialize(payload: Payload<CustomName>): ByteArray {
                 return payload.content.name.toByteArray()
             }
 
             override fun deserialize(type: ContentType, bytes: ByteArray): Payload<CustomName> {
                 return CustomNamePayload(type, CustomName(bytes.decodeToString()))
             }
-
         }
     }
 

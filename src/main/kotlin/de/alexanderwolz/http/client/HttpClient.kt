@@ -112,7 +112,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
 
     @Suppress("UNCHECKED_CAST")
     private fun serialize(payload: Payload<Any>): ByteArray {
-        return payload.type.converter.serialize(payload.type, payload as Payload<Nothing>)
+        return payload.type.converter.serialize(payload as Payload<Nothing>)
     }
 
     private fun convertBody(okResponse: okhttp3.Response): Payload<*>? {
@@ -128,7 +128,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
                     logger.trace { "Found content type in specified accept types" }
                     return contentType.converter.deserialize(contentType, bytes)
                 } else {
-                    logger.warn { "Could not determine content-type from request accept types (${request.acceptTypes?.joinToString()}" }
+                    logger.warn { "Could not determine content-type from request accept types (${request.acceptTypes?.joinToString()})" }
                     val basicType = BasicContentTypes.entries.find { it.mediaType.startsWith(normalized) }
                     if (basicType != null) {
                         logger.trace { "Found basic content type: $basicType" }

@@ -11,7 +11,7 @@ import de.alexanderwolz.http.client.model.type.ContentType
 
 object BasicConverters {
     val STRING = object : IConverter<String> {
-        override fun serialize(type: ContentType, payload: Payload<String>): ByteArray {
+        override fun serialize(payload: Payload<String>): ByteArray {
             return payload.content.toByteArray()
         }
 
@@ -22,8 +22,8 @@ object BasicConverters {
 
     val JSON = object : IConverter<JsonElement> {
         private val gson = GsonBuilder().create()
-        override fun serialize(type: ContentType, payload: Payload<JsonElement>): ByteArray {
-            val json = gson.toJson(payload.content, type.clazz.java)
+        override fun serialize(payload: Payload<JsonElement>): ByteArray {
+            val json = gson.toJson(payload.content, payload.type.clazz.java)
             return json.toByteArray()
         }
 
@@ -35,7 +35,7 @@ object BasicConverters {
 
 
     val FORM = object : IConverter<Form> {
-        override fun serialize(type: ContentType, payload: Payload<Form>): ByteArray {
+        override fun serialize(payload: Payload<Form>): ByteArray {
             return payload.content.encodeToString().toByteArray()
         }
 
