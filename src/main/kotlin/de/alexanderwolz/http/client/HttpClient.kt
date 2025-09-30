@@ -58,7 +58,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             okRequestBuilder.header("Accept", types.joinToString { it.mediaType })
         }
 
-        val okRequestBody = request.body?.let { convertToOkBody(it) }
+        val okRequestBody = request.body?.let { convertRequestBody(it) }
         okRequestBuilder.method(request.httpMethod.name, okRequestBody)
 
         val okRequest = okRequestBuilder.build()
@@ -71,7 +71,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
                     okResponse.code,
                     okResponse.message,
                     okResponse.headers.toMultimap(),
-                    convertBody(okResponse),
+                    convertResponseBody(okResponse),
                     Response.Source(okRequest, okResponse)
                 ).also { logResponse(it) }
             }
@@ -82,7 +82,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         }
     }
 
-    private fun convertToOkBody(payload: Payload): RequestBody {
+    private fun convertRequestBody(payload: Payload): RequestBody {
         val type = payload.type
         return when (payload.element) {
             is Form -> {
@@ -107,7 +107,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         }
     }
 
-    private fun convertBody(okResponse: okhttp3.Response): Payload? {
+    private fun convertResponseBody(okResponse: okhttp3.Response): Payload? {
         okResponse.body?.let { okBody ->
             val bytes = okBody.source().use { it.readByteArray() }
             val mediaType = okResponse.headers["content-type"]
@@ -118,14 +118,12 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
                 val contentType = acceptTypes.find { it.mediaType.startsWith(normalized) }
                 if (contentType != null) {
                     logger.trace { "Found content type in specified accept types" }
-                    //return contentType.converter.deserialize(contentType, bytes)
                     return Payload(contentType, bytes)
                 } else {
                     logger.warn { "Could not determine content-type from request accept types (${request.acceptTypes?.joinToString()})" }
                     val basicType = BasicContentTypes.entries.find { it.mediaType.startsWith(normalized) }
                     if (basicType != null) {
                         logger.trace { "Found basic content type: $basicType" }
-                        //return basicType.converter.deserialize(basicType, bytes)
                         return Payload(basicType, bytes)
                     } else {
                         logger.warn { "Could not determine content-type from basic types" }
