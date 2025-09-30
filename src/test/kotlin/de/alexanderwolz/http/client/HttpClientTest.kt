@@ -1,18 +1,19 @@
 package de.alexanderwolz.http.client
 
+import com.google.gson.Gson
 import com.google.gson.JsonElement
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
-import de.alexanderwolz.http.client.model.Method
-import de.alexanderwolz.http.client.model.converter.IConverter
-import de.alexanderwolz.http.client.model.payload.JsonPayload
-import de.alexanderwolz.http.client.model.payload.Payload
+import de.alexanderwolz.http.client.model.HttpMethod
+import de.alexanderwolz.http.client.model.Payload
+import de.alexanderwolz.http.client.model.converter.Converter
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import de.alexanderwolz.http.client.model.type.ContentType
 import org.junit.jupiter.api.Test
 import java.net.URI
 import java.net.UnknownHostException
 import kotlin.reflect.KClass
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -23,9 +24,9 @@ class HttpClientTest {
     fun testSimpleGetWithStatus200() {
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
-            .method(Method.GET)
+            .method(HttpMethod.GET)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
-            .accept(BasicContentTypes.JSON)
+            .accept(BasicContentTypes.JSON_ELEMENT)
             .build()
 
         val response = httpClient.execute()
@@ -33,18 +34,17 @@ class HttpClientTest {
         assertTrue { response.message == "OK" }
         assertTrue { response.isOK }
         assertNotNull(response.body)
-        println(response.body.content.javaClass)
-        println(response.body.content)
-        assertIs<JsonPayload>(response.body)
+        assertTrue { response.body.type == BasicContentTypes.JSON_ELEMENT }
+        assertIs<JsonElement>(response.body.element)
     }
 
     @Test
     fun testSimpleGetWithUnknownHostException() {
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
-            .method(Method.GET)
+            .method(HttpMethod.GET)
             .endpoint(URI.create("https://this.shoud.not.exist.com/doesNotExist"))
-            .accept(BasicContentTypes.JSON)
+            .accept(BasicContentTypes.TEXT)
             .build()
         try {
             httpClient.execute()
@@ -60,7 +60,7 @@ class HttpClientTest {
     fun testSimpleGetWithoutAcceptTypeButReturnsBasicType() {
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
-            .method(Method.GET)
+            .method(HttpMethod.GET)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
             .build()
 
@@ -69,30 +69,56 @@ class HttpClientTest {
         assertTrue { response.message == "OK" }
         assertTrue { response.isOK }
         assertNotNull(response.body)
-        assertIs<JsonPayload>(response.body)
+        assertIs<JsonElement>(response.body.element)
     }
 
-    @Test
-    fun testSimplePost() {
 
-        val payload = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
+    @Test
+    fun testJsonElementPost() {
+
+        val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
+        val jsonElement = Gson().toJsonTree(jsonString)
+        val payload = Payload(BasicContentTypes.JSON_ELEMENT, jsonElement)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
-            .method(Method.POST)
+            .method(HttpMethod.POST)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
-            .accept(BasicContentTypes.JSON)
-            .body(payload, BasicContentTypes.JSON)
+            .accept(BasicContentTypes.JSON_ELEMENT)
+            .body(payload)
             .build()
         val response = httpClient.execute()
         println("Status: ${response.code}")
-        if (response.isOK && response.body != null && response.body.type == BasicContentTypes.JSON) {
-            assertIs<JsonElement>(response.body.content)
-            println("YAY!")
-            println(response.body.content)
+        if (response.isOK) {
+            response.body?.let { payload ->
+                assertIs<JsonElement>(payload.element)
+            } ?: throw Exception("Body should not be empty")
         } else {
-            println("OH NO!")
-            println(response.body?.content)
+            throw Exception("Response should be OK, but was ${response.code}")
+        }
+    }
+
+    @Test
+    fun testJsonBinaryPost() {
+
+        val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
+        val payload = Payload(BasicContentTypes.JSON_ELEMENT, jsonString.toByteArray())
+
+        val httpClient = HttpClient.Builder()
+            .userAgent(HttpClient::class.java.simpleName)
+            .method(HttpMethod.POST)
+            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .accept(BasicContentTypes.JSON_ELEMENT)
+            .body(payload)
+            .build()
+        val response = httpClient.execute()
+        println("Status: ${response.code}")
+        if (response.isOK) {
+            response.body?.let { payload ->
+                assertIs<JsonElement>(payload.element)
+            } ?: throw Exception("Body should not be empty")
+        } else {
+            throw Exception("Response should be OK, but was ${response.code}")
         }
     }
 
@@ -100,46 +126,31 @@ class HttpClientTest {
     fun testGetWithCustomType() {
         val type = Types.CUSTOM_NAME
         val content = CustomName("MyName")
-        val payload = CustomNamePayload(type, content)
+        val payload = Payload(type, content)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
-            .method(Method.POST)
+            .method(HttpMethod.POST)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
-            .accept(BasicContentTypes.JSON)
+            .accept(BasicContentTypes.JSON_TEXT)
             .body(payload)
             .build()
         val response = httpClient.execute()
-        println("Status: ${response.code}")
-        if (response.isOK && response.body != null && response.body.type == BasicContentTypes.JSON) {
-            println("YAY!")
-            println(response.body.content)
-        } else {
-            println("OH NO!")
-            println(response.body?.content)
-        }
+        assertEquals(415, response.code)
+        assertEquals("Unsupported Media Type", response.message)
+        assertNotNull(response.body)
+        assertEquals("application/json", response.body.type.mediaType)
+        assertEquals("application/customName", response.request.body?.type?.mediaType)
     }
 
     private enum class Types(override val mediaType: String, override val clazz: KClass<*>) : ContentType {
-        CUSTOM_NAME("application/custom2", CustomName::class) {
-            override val converter = customNameConverter
+        CUSTOM_NAME("application/customName", CustomName::class) {
+            override val converter = Converter(
+                { it.name.toByteArray() },
+                { CustomName(it.decodeToString()) })
         };
-
-        val customNameConverter = object : IConverter<CustomName> {
-            override fun serialize(payload: Payload<CustomName>): ByteArray {
-                return payload.content.name.toByteArray()
-            }
-
-            override fun deserialize(type: ContentType, bytes: ByteArray): Payload<CustomName> {
-                return CustomNamePayload(type, CustomName(bytes.decodeToString()))
-            }
-        }
     }
 
     private data class CustomName(val name: String)
-    private data class CustomNamePayload(
-        override val type: ContentType,
-        override val content: CustomName
-    ) : Payload<CustomName>
 
 }

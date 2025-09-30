@@ -1,6 +1,6 @@
 package de.alexanderwolz.http.client.utils
 
-import de.alexanderwolz.http.client.model.payload.*
+import de.alexanderwolz.http.client.model.Payload
 import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -14,7 +14,7 @@ object StringUtils {
         while (m.find()) {
             val envVarName = if (null == m.group(1)) m.group(2) else m.group(1)
             val envVarValue = variables[envVarName]
-            m.appendReplacement(sb, Matcher.quoteReplacement(envVarValue ?: "\${$envVarValue}"))
+            m.appendReplacement(sb, Matcher.quoteReplacement(envVarValue ?: $$"${$$envVarValue}"))
         }
         m.appendTail(sb)
         return sb.toString()
@@ -35,45 +35,15 @@ object StringUtils {
         }
     }
 
-    fun getBodyString(body: Payload<*>?): String {
+    fun getBodyString(payload: Payload?): String {
 
-        if (body == null) {
+        if (payload == null) {
             return "No body"
         }
 
         val builder = StringBuilder()
-
-        when (body) {
-            is FormPayload -> {
-                val entries = body.content.entries
-                entries.forEachIndexed { i, entry ->
-                    if (i > 0) {
-                        builder.append(" ")
-                    }
-                    builder.append("${entry.key}=${entry.value}")
-                    if (i < entries.size - 1) {
-                        builder.append(",")
-                    }
-                }
-            }
-
-            is StringPayload -> {
-                builder.append(body.content)
-            }
-
-            is ByteArrayPayload -> {
-                builder.append(body.content.decodeToString())
-            }
-
-            is JsonPayload -> {
-                builder.append(body.content.asString)
-            }
-
-            else -> {
-                builder.append(body.content)
-            }
-        }
-
+        //TODO parse element?
+        builder.append(payload.bytes.decodeToString())
         return builder.toString()
     }
 

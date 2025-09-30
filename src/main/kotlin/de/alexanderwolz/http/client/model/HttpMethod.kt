@@ -1,5 +1,5 @@
 package de.alexanderwolz.http.client.model
 
-enum class Method {
+enum class HttpMethod {
     GET, PUT, POST, DELETE
 }

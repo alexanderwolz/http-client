@@ -1,47 +1,28 @@
 package de.alexanderwolz.http.client.model.converter
 
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonElement
+import com.google.gson.Gson
 import de.alexanderwolz.http.client.model.Form
-import de.alexanderwolz.http.client.model.payload.FormPayload
-import de.alexanderwolz.http.client.model.payload.JsonPayload
-import de.alexanderwolz.http.client.model.payload.Payload
-import de.alexanderwolz.http.client.model.payload.StringPayload
-import de.alexanderwolz.http.client.model.type.ContentType
+import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
 
 object BasicConverters {
-    val STRING = object : IConverter<String> {
-        override fun serialize(payload: Payload<String>): ByteArray {
-            return payload.content.toByteArray()
-        }
 
-        override fun deserialize(type: ContentType, bytes: ByteArray): Payload<String> {
-            return StringPayload(type, bytes.decodeToString())
-        }
-    }
+    val STRING = Converter(
+        { it.toByteArray() },
+        { it.decodeToString() }
+    )
 
-    val JSON = object : IConverter<JsonElement> {
-        private val gson = GsonBuilder().create()
-        override fun serialize(payload: Payload<JsonElement>): ByteArray {
-            val json = gson.toJson(payload.content, payload.type.clazz.java)
-            return json.toByteArray()
-        }
+    val JSON_ELEMENT = Converter(
+        { Gson().toJson(it).toByteArray() },
+        { Gson().toJsonTree(it.decodeToString()) }
+    )
 
-        override fun deserialize(type: ContentType, bytes: ByteArray): Payload<JsonElement> {
-            val jsonString = bytes.decodeToString()
-            return JsonPayload(type, gson.toJsonTree(jsonString))
-        }
-    }
+    val OAUTH_TOKEN = Converter(
+        { Gson().toJson(it).toByteArray() },
+        { Gson().fromJson(it.decodeToString(), OAuthTokenResponse::class.java) }
+    )
 
-
-    val FORM = object : IConverter<Form> {
-        override fun serialize(payload: Payload<Form>): ByteArray {
-            return payload.content.encodeToString().toByteArray()
-        }
-
-        override fun deserialize(type: ContentType, bytes: ByteArray): Payload<Form> {
-            val content = bytes.decodeToString()
-            return FormPayload(type, Form(content))
-        }
-    }
+    val FORM = Converter(
+        { it.encodeToString().toByteArray() },
+        { Form(it.decodeToString()) }
+    )
 }

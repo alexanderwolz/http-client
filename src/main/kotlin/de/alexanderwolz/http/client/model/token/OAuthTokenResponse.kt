@@ -1,4 +1,4 @@
-package de.alexanderwolz.http.client.model
+package de.alexanderwolz.http.client.model.token
 
 import com.google.gson.annotations.SerializedName
 
