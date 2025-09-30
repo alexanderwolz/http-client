@@ -38,6 +38,19 @@ tasks.test {
     useJUnitPlatform()
 }
 
+tasks.jar {
+    manifest {
+        attributes(
+            "Implementation-Title" to project.name,
+            "Implementation-Version" to project.version,
+            "Implementation-Vendor" to "Alexander Wolz",
+            "Built-By" to System.getProperty("user.name"),
+            "Built-JDK" to System.getProperty("java.version"),
+            "Created-By" to "Gradle ${gradle.gradleVersion}"
+        )
+    }
+}
+
 //see also https://github.com/gradle-nexus/publish-plugin/tree/v2.0.0
 publishing {
     publications {
