@@ -288,6 +288,10 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             } ?: endpoint
         }
 
+        fun certificateLookupFolder(certFolder: File) = apply {
+            this.certFolder = certFolder
+        }
+
         fun certificates(bundle: CertificateBundle?) = apply {
             this.certificateBundle = bundle
         }
@@ -334,7 +338,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             return URI.create(StringUtils.resolveVars(endpoint.toString(), params))
         }
 
-        fun resolveReference(reference: CertificateReference): CertificateBundle {
+        private fun resolveReference(reference: CertificateReference): CertificateBundle {
 
             val privateKeyFile = CertificateUtils.resolveKeyPairFile(reference.key, certFolder)
             val publicKeyFile = CertificateUtils.resolveKeyPairFile(reference.cert, certFolder)
