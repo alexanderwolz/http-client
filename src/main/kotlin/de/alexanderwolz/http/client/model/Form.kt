@@ -8,10 +8,6 @@ class Form() {
 
     private val map = HashMap<String, String>()
 
-    init {
-        this.map.putAll(map)
-    }
-
     constructor(map: Map<String, String>) : this() {
         this.map.putAll(map)
     }
