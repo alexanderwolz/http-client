@@ -4,12 +4,17 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
+import de.alexanderwolz.http.client.model.Form
 import de.alexanderwolz.http.client.model.HttpMethod
 import de.alexanderwolz.http.client.model.Payload
+import de.alexanderwolz.http.client.model.certificate.CertificateBundle
+import de.alexanderwolz.http.client.model.certificate.CertificateReference
 import de.alexanderwolz.http.client.model.converter.Converter
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import de.alexanderwolz.http.client.model.type.ContentType
+import de.alexanderwolz.http.client.utils.CertificateUtils
 import org.junit.jupiter.api.Test
+import java.io.File
 import java.net.URI
 import java.net.UnknownHostException
 import kotlin.reflect.KClass
@@ -21,20 +26,38 @@ import kotlin.test.assertTrue
 class HttpClientTest {
 
     @Test
-    fun testSimpleGetWithStatus200() {
+    fun testSimpleGetWithJson() {
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.GET)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
-            .accept(BasicContentTypes.JSON_ELEMENT)
+            .accept(BasicContentTypes.APPLICATION_JSON)
             .build()
 
         val response = httpClient.execute()
-        assertTrue { response.code == 200 }
-        assertTrue { response.message == "OK" }
+        assertEquals(200, response.code)
+        assertEquals("OK", response.message)
         assertTrue { response.isOK }
         assertNotNull(response.body)
-        assertTrue { response.body.type == BasicContentTypes.JSON_ELEMENT }
+        assertTrue { response.body.type == BasicContentTypes.APPLICATION_JSON }
+        assertIs<String>(response.body.element)
+    }
+
+    @Test
+    fun testSimpleGetWithGSON() {
+        val httpClient = HttpClient.Builder()
+            .userAgent(HttpClient::class.java.simpleName)
+            .method(HttpMethod.GET)
+            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .accept(BasicContentTypes.GSON)
+            .build()
+
+        val response = httpClient.execute()
+        assertEquals(200, response.code)
+        assertEquals("OK", response.message)
+        assertTrue { response.isOK }
+        assertNotNull(response.body)
+        assertTrue { response.body.type == BasicContentTypes.GSON }
         assertIs<JsonElement>(response.body.element)
     }
 
@@ -44,7 +67,7 @@ class HttpClientTest {
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.GET)
             .endpoint(URI.create("https://this.shoud.not.exist.com/doesNotExist"))
-            .accept(BasicContentTypes.TEXT)
+            .accept(BasicContentTypes.TEXT_PLAIN)
             .build()
         try {
             httpClient.execute()
@@ -65,11 +88,12 @@ class HttpClientTest {
             .build()
 
         val response = httpClient.execute()
-        assertTrue { response.code == 200 }
-        assertTrue { response.message == "OK" }
+        assertEquals(200, response.code)
+        assertEquals("OK", response.message)
         assertTrue { response.isOK }
         assertNotNull(response.body)
-        assertIs<JsonElement>(response.body.element)
+        assertIs<String>(response.body.element)
+        assertEquals(BasicContentTypes.APPLICATION_JSON, response.body.type)
     }
 
 
@@ -77,18 +101,40 @@ class HttpClientTest {
     fun testJsonElementPost() {
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
-        val jsonElement = Gson().toJsonTree(jsonString)
-        val payload = Payload(BasicContentTypes.JSON_ELEMENT, jsonElement)
+        val payload = Payload(BasicContentTypes.APPLICATION_JSON, jsonString)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
-            .accept(BasicContentTypes.JSON_ELEMENT)
+            .accept(BasicContentTypes.APPLICATION_JSON)
             .body(payload)
             .build()
         val response = httpClient.execute()
-        println("Status: ${response.code}")
+        if (response.isOK) {
+            response.body?.let { payload ->
+                assertIs<String>(payload.element)
+            } ?: throw Exception("Body should not be empty")
+        } else {
+            throw Exception("Response should be OK, but was ${response.code}")
+        }
+    }
+
+    @Test
+    fun testGsonElementPost() {
+
+        val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
+        val jsonElement = Gson().toJsonTree(jsonString)
+        val payload = Payload(BasicContentTypes.GSON, jsonElement)
+
+        val httpClient = HttpClient.Builder()
+            .userAgent(HttpClient::class.java.simpleName)
+            .method(HttpMethod.POST)
+            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .accept(BasicContentTypes.GSON)
+            .body(payload)
+            .build()
+        val response = httpClient.execute()
         if (response.isOK) {
             response.body?.let { payload ->
                 assertIs<JsonElement>(payload.element)
@@ -102,17 +148,39 @@ class HttpClientTest {
     fun testJsonBinaryPost() {
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
-        val payload = Payload(BasicContentTypes.JSON_ELEMENT, jsonString.toByteArray())
+        val payload = Payload(BasicContentTypes.APPLICATION_JSON, jsonString.toByteArray())
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
-            .accept(BasicContentTypes.JSON_ELEMENT)
+            .accept(BasicContentTypes.APPLICATION_JSON)
             .body(payload)
             .build()
         val response = httpClient.execute()
-        println("Status: ${response.code}")
+        if (response.isOK) {
+            response.body?.let { payload ->
+                assertIs<String>(payload.element)
+            } ?: throw Exception("Body should not be empty")
+        } else {
+            throw Exception("Response should be OK, but was ${response.code}")
+        }
+    }
+
+    @Test
+    fun testGsonBinaryPost() {
+
+        val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
+        val payload = Payload(BasicContentTypes.GSON, jsonString.toByteArray())
+
+        val httpClient = HttpClient.Builder()
+            .userAgent(HttpClient::class.java.simpleName)
+            .method(HttpMethod.POST)
+            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .accept(BasicContentTypes.GSON)
+            .body(payload)
+            .build()
+        val response = httpClient.execute()
         if (response.isOK) {
             response.body?.let { payload ->
                 assertIs<JsonElement>(payload.element)
@@ -120,6 +188,27 @@ class HttpClientTest {
         } else {
             throw Exception("Response should be OK, but was ${response.code}")
         }
+    }
+
+    @Test
+    fun testFormPost() {
+
+        val form = Form(mapOf("key1" to "value1"))
+        val payload = Payload(BasicContentTypes.FORM_URL_ENCODED, form)
+
+        val httpClient = HttpClient.Builder()
+            .userAgent(HttpClient::class.java.simpleName)
+            .method(HttpMethod.POST)
+            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .accept(BasicContentTypes.APPLICATION_JSON)
+            .body(payload)
+            .build()
+        val response = httpClient.execute()
+        assertEquals(415, response.code)
+        assertEquals("Unsupported Media Type", response.message)
+        assertNotNull(response.body)
+        assertEquals("application/json", response.body.type.mediaType)
+        assertEquals("application/x-www-form-urlencoded", response.request.body?.type?.mediaType)
     }
 
     @Test
@@ -132,7 +221,7 @@ class HttpClientTest {
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
-            .accept(BasicContentTypes.JSON_TEXT)
+            .accept(BasicContentTypes.APPLICATION_JSON)
             .body(payload)
             .build()
         val response = httpClient.execute()
@@ -143,6 +232,7 @@ class HttpClientTest {
         assertEquals("application/customName", response.request.body?.type?.mediaType)
     }
 
+    private data class CustomName(val name: String)
     private enum class Types(override val mediaType: String, override val clazz: KClass<*>) : ContentType {
         CUSTOM_NAME("application/customName", CustomName::class) {
             override val converter = Converter(
@@ -151,6 +241,40 @@ class HttpClientTest {
         };
     }
 
-    private data class CustomName(val name: String)
+    @Test
+    fun testCertificateReferences() {
+        val references = CertificateReference(File("key.pem"), File("cert.pem"))
+        val httpClient = HttpClient.Builder()
+            .userAgent(HttpClient::class.java.simpleName)
+            .verifyCert(false)
+            .method(HttpMethod.GET)
+            .certificateLookupFolder(File("/src/test/resources"))
+            .certificates(references)
+            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .accept(BasicContentTypes.APPLICATION_JSON)
+            .build()
+        val response = httpClient.execute()
+    }
+
+    @Test
+    fun testCertificateBundle() {
+
+        val root = File("").absoluteFile
+        val privateKeyText = File(root, "/src/test/resources/key.pem").absoluteFile.readText()
+        val privateKey = CertificateUtils.readPrivateKey(privateKeyText)
+        val certificates = CertificateUtils.readCertificates(File(root, "/src/test/resources/cert.pem"))
+        val bundle = CertificateBundle(privateKey, certificates, emptyList())
+
+        val httpClient = HttpClient.Builder()
+            .userAgent(HttpClient::class.java.simpleName)
+            .verifyCert(false)
+            .method(HttpMethod.GET)
+            .certificateLookupFolder(File("/src/test/resources"))
+            .certificates(bundle)
+            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .accept(BasicContentTypes.APPLICATION_JSON)
+            .build()
+        val response = httpClient.execute()
+    }
 
 }

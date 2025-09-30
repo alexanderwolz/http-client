@@ -11,10 +11,11 @@ enum class BasicContentTypes(
     override val clazz: KClass<*>,
     override val converter: Converter<*>
 ) : ContentType {
-    TEXT("text/plain", String::class, BasicConverters.STRING),
-    XML("text/xml", String::class, BasicConverters.STRING),
-    HTML("text/html", String::class, BasicConverters.STRING),
-    JSON_ELEMENT("application/json", JsonElement::class, BasicConverters.JSON_ELEMENT),
-    JSON_TEXT("application/json", String::class, BasicConverters.STRING),
-    FORM_URL_ENCODED("application/x-www-form-urlencoded", Form::class, BasicConverters.FORM);
+    TEXT_PLAIN("text/plain", String::class, BasicConverters.STRING),
+    TEXT_XML("text/xml", String::class, BasicConverters.STRING),
+    TEXT_HTML("text/html", String::class, BasicConverters.STRING),
+    APPLICATION_XML("application/xml", String::class, BasicConverters.STRING),
+    APPLICATION_JSON("application/json", String::class, BasicConverters.STRING),
+    FORM_URL_ENCODED("application/x-www-form-urlencoded", Form::class, BasicConverters.FORM),
+    GSON("application/json", JsonElement::class, BasicConverters.JSON_ELEMENT);
 }
