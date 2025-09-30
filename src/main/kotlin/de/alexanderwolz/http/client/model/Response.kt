@@ -2,7 +2,7 @@ package de.alexanderwolz.http.client.model
 
 import de.alexanderwolz.http.client.model.payload.Payload
 
-data class Response<T>(
+data class Response<T : Any>(
     val request: Request,
     val code: Int,
     val message: String?,

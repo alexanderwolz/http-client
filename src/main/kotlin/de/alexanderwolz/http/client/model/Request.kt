@@ -9,6 +9,6 @@ data class Request(
     val endpoint: URI,
     val headers: Map<String, Set<String>>,
     val body: Payload<*>? = null,
-    val acceptTypes: Set<ContentType>? = null,
+    val acceptTypes: Set<ContentType<*>>? = null,
     val certificates: CertificateBundle? = null
 )

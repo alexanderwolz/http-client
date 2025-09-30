@@ -3,8 +3,8 @@ package de.alexanderwolz.http.client
 import de.alexanderwolz.http.client.model.ContentType
 import de.alexanderwolz.http.client.model.ContentTypeRegistry
 import de.alexanderwolz.http.client.model.Method
-import de.alexanderwolz.http.client.model.payload.ByteArrayPayload
-import de.alexanderwolz.http.client.model.payload.StringPayload
+import de.alexanderwolz.http.client.model.payload.Converter
+import de.alexanderwolz.http.client.model.payload.Payload
 import org.junit.jupiter.api.Test
 import java.net.URI
 
@@ -23,10 +23,10 @@ class HttpClientTest {
         println("Status: ${response.code}")
         if (response.isOK && response.body != null && response.body.type == ContentType.JSON) {
             println("YAY!")
-            println(response.body.content.decodeToString())
+            println(response.body.content)
         } else {
             println("OH NO!")
-            println(response.body?.content?.decodeToString())
+            println(response.body?.content)
         }
     }
 
@@ -46,18 +46,42 @@ class HttpClientTest {
         println("Status: ${response.code}")
         if (response.isOK && response.body != null && response.body.type == ContentType.JSON) {
             println("YAY!")
-            println(response.body.content.decodeToString())
+            println(response.body.content)
         } else {
             println("OH NO!")
-            println(response.body?.content?.decodeToString())
+            println(response.body?.content)
         }
     }
 
     @Test
     fun testCustomContentType() {
-        val type = ContentTypeRegistry.register("application/custom_v1+xml", Custom::class)
-        val content = Custom("test").toString()
-        val payload = ByteArrayPayload(type, content.toByteArray())
+
+        //val serialized = bytes.decodeToString()
+        //CustomPayload(type, Custom(serialized))
+
+
+        val type = ContentTypeRegistry.register<Custom>(
+            "application/custom_v1+xml",
+            object : Converter<Custom> {
+                override fun serialize(
+                    type: ContentType<Custom>,
+                    payload: Payload<*>
+                ): ByteArray {
+                    return (payload.content as Custom).name.toByteArray()
+                }
+
+                override fun deserialize(
+                    type: ContentType<Custom>,
+                    bytes: ByteArray
+                ): Payload<Custom> {
+                    val serialized = bytes.decodeToString()
+                    return CustomPayload(type, Custom(serialized))
+                }
+
+            }
+        )
+        val custom = Custom("test")
+        val payload = CustomPayload(type, custom)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -70,13 +94,16 @@ class HttpClientTest {
         println("Status: ${response.code}")
         if (response.isOK && response.body != null && response.body.type == ContentType.JSON) {
             println("YAY!")
-            println(response.body.content.decodeToString())
+            println(response.body.content)
         } else {
             println("OH NO!")
-            println(response.body?.content?.decodeToString())
+            println(response.body?.content)
         }
     }
 
     private data class Custom(val name: String)
+    private data class CustomPayload(
+        override val type: ContentType<Custom>, override val content: Custom
+    ) : Payload<Custom>
 
 }

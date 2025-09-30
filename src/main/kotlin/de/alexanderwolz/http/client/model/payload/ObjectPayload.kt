@@ -2,7 +2,4 @@ package de.alexanderwolz.http.client.model.payload
 
 import de.alexanderwolz.http.client.model.ContentType
 
-interface Payload<T : Any> {
-    val type: ContentType<T>
-    val content: T
-}
+data class ObjectPayload(override val type: ContentType<Any>, override val content: Any) : Payload<Any>

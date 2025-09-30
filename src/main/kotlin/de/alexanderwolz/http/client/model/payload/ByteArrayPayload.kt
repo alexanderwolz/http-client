@@ -2,7 +2,10 @@ package de.alexanderwolz.http.client.model.payload
 
 import de.alexanderwolz.http.client.model.ContentType
 
-data class ByteArrayPayload(override val type: ContentType, override val content: ByteArray) : Payload<ByteArray> {
+data class ByteArrayPayload(
+    override val type: ContentType<ByteArray>,
+    override val content: ByteArray
+) : Payload<ByteArray> {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

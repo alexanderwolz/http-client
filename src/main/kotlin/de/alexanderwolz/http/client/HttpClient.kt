@@ -3,27 +3,19 @@ package de.alexanderwolz.http.client
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.log.Logger
-import de.alexanderwolz.http.client.model.payload.ByteArrayPayload
+import de.alexanderwolz.http.client.model.*
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
-import de.alexanderwolz.http.client.model.ContentType
-import de.alexanderwolz.http.client.model.ContentTypeRegistry
+import de.alexanderwolz.http.client.model.payload.ByteArrayPayload
 import de.alexanderwolz.http.client.model.payload.FormPayload
-import de.alexanderwolz.http.client.model.Method
-import de.alexanderwolz.http.client.model.OAuthTokenResponse
 import de.alexanderwolz.http.client.model.payload.Payload
-import de.alexanderwolz.http.client.model.Request
-import de.alexanderwolz.http.client.model.Response
 import de.alexanderwolz.http.client.model.payload.StringPayload
+import de.alexanderwolz.http.client.socket.SslSocket
 import de.alexanderwolz.http.client.utils.CertificateUtils
 import de.alexanderwolz.http.client.utils.StringUtils
-import de.alexanderwolz.http.client.socket.SslSocket
-import okhttp3.FormBody as FormBodyOK
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.internal.userAgent
 import okio.IOException
 import java.io.File
 import java.net.InetSocketAddress
@@ -37,13 +29,14 @@ import java.security.cert.X509Certificate
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.*
+import okhttp3.FormBody as FormBodyOK
 
 //This class is intended to wrap HTTP libraries, in this case OKHTTP
 class HttpClient private constructor(val proxy: URI?, val request: Request, private val token: OAuthTokenResponse?) {
 
     private val logger = Logger(javaClass)
 
-    fun execute(): Response<ByteArray> {
+    fun execute(): Response<*> {
 
         val okHttpClient = createOkHttpClient(request.certificates, proxy)
 
@@ -82,7 +75,10 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
                     it.content.toRequestBody(it.type.mediaType.toMediaType())
                 }
 
-                else -> throw UnsupportedOperationException("Unsupported body type: ${it.javaClass}")
+                else -> {
+                    logger.trace { "Custom payload: $it" }
+                    it.type.serialize(it).toRequestBody(it.type.mediaType.toMediaType())
+                }
             }
         }
         okRequestBuilder.method(request.method.name, okRequestBody)
@@ -92,20 +88,19 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
 
         try {
             okHttpClient.newCall(okRequest).execute().use { okResponse ->
-                val body = okResponse.body?.let { okBody ->
-                    val byteArray = okBody.source().use { it.readByteArray() }
+                val responseBody = okResponse.body?.let { okBody ->
+                    val bytes = okBody.source().use { it.readByteArray() }
                     val contentType = okResponse.headers["content-type"]?.let { mediaType ->
                         ContentTypeRegistry.find(mediaType)
                     } ?: ContentType.TEXT
-                    //TODO determine Body by content type and parse content
-                    ByteArrayPayload(contentType, byteArray)
+                    contentType.deserialize(bytes)
                 }
                 return Response(
                     request,
                     okResponse.code,
                     okResponse.message,
                     okResponse.headers.toMultimap(),
-                    body,
+                    responseBody,
                     Response.Source(okRequest, okResponse)
                 ).also { logResponse(it) }
             }
@@ -266,7 +261,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         private var endpoint: URI? = null
         private val requestHeaders = HashMap<String, Set<String>>()
         private var requestBody: Payload<*>? = null
-        private var acceptTypes: Set<ContentType>? = null
+        private var acceptTypes: Set<ContentType<*>>? = null
         private var certificateBundle: CertificateBundle? = null
         private var certificateReference: CertificateReference? = null
         private var certFolder: File? = null
@@ -302,7 +297,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             this.certificateReference = reference
         }
 
-        fun accept(vararg contentTypes: ContentType) = apply {
+        fun accept(vararg contentTypes: ContentType<*>) = apply {
             this.acceptTypes = contentTypes.toSet()
         }
 
@@ -318,13 +313,15 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             }
         }
 
-        fun body(form: Map<String, String>, type: ContentType? = null) = apply {
-            this.body(FormPayload(type ?: ContentType.FORM, form))
+        fun body(form: Form, type: ContentType<Form>? = null) = apply {
+            this.body(FormPayload(type ?: ContentType.FORM_URL_ENCODED, form))
         }
 
-        fun body(content: String, type: ContentType) = apply {
+        fun body(content: String, type: ContentType<String>) = apply {
             this.body(StringPayload(type, content))
         }
+
+        //TODO make a generic Payload for typed classes ???
 
         fun token(token: OAuthTokenResponse) = apply {
             this.token = token
