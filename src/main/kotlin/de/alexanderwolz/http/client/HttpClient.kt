@@ -33,7 +33,7 @@ import javax.net.ssl.*
 import okhttp3.FormBody as FormBodyOK
 
 //This class is intended to wrap HTTP libraries, in this case OKHTTP
-class HttpClient private constructor(val proxy: URI?, val request: Request, private val token: AccessToken?) {
+class HttpClient private constructor(val proxy: URI?, val request: Request, private val accessToken: AccessToken?) {
 
     private val logger = Logger(javaClass)
 
@@ -46,11 +46,11 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             okRequestBuilder.header(it.key, it.value.joinToString())
         }
 
-        token?.let {
+        accessToken?.let {
             //overwrite Authorization header if accessToken is given
             okRequestBuilder.header(
                 "Authorization",
-                "${StringUtils.capitalize(token.type)} ${token.encodedJWT}"
+                "${StringUtils.capitalize(it.type)} ${it.encodedJWT}"
             )
         }
 
@@ -264,7 +264,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         private var certificateBundle: CertificateBundle? = null
         private var certificateReference: CertificateReference? = null
         private var certFolder: File? = null
-        private var token: AccessToken? = null
+        private var accessToken: AccessToken? = null
         private var proxy: URI? = null
 
         init {
@@ -312,8 +312,8 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             }
         }
 
-        fun token(token: AccessToken) = apply {
-            this.token = token
+        fun accessToken(token: AccessToken) = apply {
+            this.accessToken = token
         }
 
         fun proxy(proxy: URI) = apply {
@@ -327,7 +327,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             val endpoint = requireNotNull(endpoint)
             val certificates = certificateReference?.let { resolveReference(it) } ?: certificateBundle
             val request = Request(httpMethod, endpoint, requestHeaders, requestBody, acceptTypes, certificates)
-            return HttpClient(proxy, request, token)
+            return HttpClient(proxy, request, accessToken)
         }
 
         private fun resolveEndpoint(endpoint: URI, params: Map<String, String>): URI {
