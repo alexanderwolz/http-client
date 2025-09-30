@@ -6,7 +6,7 @@ import de.alexanderwolz.http.client.model.Response
 class HttpExecutionException(
     val request: Request,
     val reason: Reason,
-    val response: Response<*>? = null,
+    val response: Response? = null,
     cause: Throwable? = null
 ) : Exception(cause) {
 

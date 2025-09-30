@@ -1,5 +1,5 @@
 package de.alexanderwolz.http.client.model.payload
 
-import de.alexanderwolz.http.client.model.ContentType
+import de.alexanderwolz.http.client.model.type.ContentType
 
-data class ObjectPayload(override val type: ContentType<Any>, override val content: Any) : Payload<Any>
+data class ObjectPayload(override val type: ContentType, override val content: Any) : Payload<Any>

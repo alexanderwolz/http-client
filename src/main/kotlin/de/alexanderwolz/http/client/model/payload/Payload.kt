@@ -1,8 +1,8 @@
 package de.alexanderwolz.http.client.model.payload
 
-import de.alexanderwolz.http.client.model.ContentType
+import de.alexanderwolz.http.client.model.type.ContentType
 
-interface Payload<T : Any> {
-    val type: ContentType<T>
+interface Payload<out T : Any> {
+    val type: ContentType
     val content: T
 }

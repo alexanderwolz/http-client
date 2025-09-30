@@ -1,6 +1,7 @@
 package de.alexanderwolz.http.client.utils
 
-import java.util.Locale
+import de.alexanderwolz.http.client.model.payload.*
+import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
@@ -32,6 +33,47 @@ object StringUtils {
         return string.replaceFirstChar {
             if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
         }
+    }
+
+    fun getBodyString(body: Payload<*>?): String {
+
+        if (body == null) {
+            return "No body"
+        }
+
+        val builder = StringBuilder()
+
+        when (body) {
+            is FormPayload -> {
+                body.content.entries.forEachIndexed { i, entry ->
+                    if (i > 0) {
+                        builder.append(" ")
+                    }
+                    builder.append("${entry.key}=${entry.value}")
+                    if (i < body.content.size - 1) {
+                        builder.append(",")
+                    }
+                }
+            }
+
+            is StringPayload -> {
+                builder.append(body.content)
+            }
+
+            is ByteArrayPayload -> {
+                builder.append(body.content.decodeToString())
+            }
+
+            is JsonPayload -> {
+                builder.append(body.content.asString)
+            }
+
+            else -> {
+                builder.append(body.content)
+            }
+        }
+
+        return builder.toString()
     }
 
 }

@@ -1,9 +1,9 @@
 package de.alexanderwolz.http.client.model.payload
 
-import de.alexanderwolz.http.client.model.ContentType
+import de.alexanderwolz.http.client.model.type.ContentType
 
 data class ByteArrayPayload(
-    override val type: ContentType<ByteArray>,
+    override val type: ContentType,
     override val content: ByteArray
 ) : Payload<ByteArray> {
 
