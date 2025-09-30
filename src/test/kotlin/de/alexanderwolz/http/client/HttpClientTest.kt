@@ -4,13 +4,12 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
-import de.alexanderwolz.http.client.model.Method
-import de.alexanderwolz.http.client.model.converter.Converter
+import de.alexanderwolz.http.client.model.HttpMethod
 import de.alexanderwolz.http.client.model.Payload
+import de.alexanderwolz.http.client.model.converter.Converter
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import de.alexanderwolz.http.client.model.type.ContentType
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.net.URI
 import java.net.UnknownHostException
 import kotlin.reflect.KClass
@@ -25,7 +24,7 @@ class HttpClientTest {
     fun testSimpleGetWithStatus200() {
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
-            .method(Method.GET)
+            .method(HttpMethod.GET)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
             .accept(BasicContentTypes.JSON_ELEMENT)
             .build()
@@ -43,7 +42,7 @@ class HttpClientTest {
     fun testSimpleGetWithUnknownHostException() {
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
-            .method(Method.GET)
+            .method(HttpMethod.GET)
             .endpoint(URI.create("https://this.shoud.not.exist.com/doesNotExist"))
             .accept(BasicContentTypes.TEXT)
             .build()
@@ -61,7 +60,7 @@ class HttpClientTest {
     fun testSimpleGetWithoutAcceptTypeButReturnsBasicType() {
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
-            .method(Method.GET)
+            .method(HttpMethod.GET)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
             .build()
 
@@ -83,7 +82,7 @@ class HttpClientTest {
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
-            .method(Method.POST)
+            .method(HttpMethod.POST)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
             .accept(BasicContentTypes.JSON_ELEMENT)
             .body(payload)
@@ -107,7 +106,7 @@ class HttpClientTest {
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
-            .method(Method.POST)
+            .method(HttpMethod.POST)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
             .accept(BasicContentTypes.JSON_ELEMENT)
             .body(payload)
@@ -131,7 +130,7 @@ class HttpClientTest {
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
-            .method(Method.POST)
+            .method(HttpMethod.POST)
             .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
             .accept(BasicContentTypes.JSON_TEXT)
             .body(payload)

@@ -1,11 +1,8 @@
 package de.alexanderwolz.http.client.model.converter
 
 import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonElement
 import de.alexanderwolz.http.client.model.Form
-import de.alexanderwolz.http.client.model.OAuthTokenResponse
-import de.alexanderwolz.http.client.model.type.ContentType
+import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
 
 object BasicConverters {
 

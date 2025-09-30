@@ -14,7 +14,7 @@ object StringUtils {
         while (m.find()) {
             val envVarName = if (null == m.group(1)) m.group(2) else m.group(1)
             val envVarValue = variables[envVarName]
-            m.appendReplacement(sb, Matcher.quoteReplacement(envVarValue ?: "\${$envVarValue}"))
+            m.appendReplacement(sb, Matcher.quoteReplacement(envVarValue ?: $$"${$$envVarValue}"))
         }
         m.appendTail(sb)
         return sb.toString()

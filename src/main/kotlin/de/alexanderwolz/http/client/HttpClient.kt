@@ -7,7 +7,7 @@ import de.alexanderwolz.http.client.log.Logger
 import de.alexanderwolz.http.client.model.*
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
-import de.alexanderwolz.http.client.model.Payload
+import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import de.alexanderwolz.http.client.model.type.ContentType
 import de.alexanderwolz.http.client.socket.SslSocket
@@ -19,7 +19,6 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.IOException
 import java.io.File
-import java.io.Serializable
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI
@@ -34,7 +33,7 @@ import javax.net.ssl.*
 import okhttp3.FormBody as FormBodyOK
 
 //This class is intended to wrap HTTP libraries, in this case OKHTTP
-class HttpClient private constructor(val proxy: URI?, val request: Request, private val token: OAuthTokenResponse?) {
+class HttpClient private constructor(val proxy: URI?, val request: Request, private val token: AccessToken?) {
 
     private val logger = Logger(javaClass)
 
@@ -51,7 +50,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             //overwrite Authorization header if accessToken is given
             okRequestBuilder.header(
                 "Authorization",
-                "${StringUtils.capitalize(token.type)} ${token.accessToken}"
+                "${StringUtils.capitalize(token.type)} ${token.encodedJWT}"
             )
         }
 
@@ -60,7 +59,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         }
 
         val okRequestBody = request.body?.let { convertToOkBody(it) }
-        okRequestBuilder.method(request.method.name, okRequestBody)
+        okRequestBuilder.method(request.httpMethod.name, okRequestBody)
 
         val okRequest = okRequestBuilder.build()
         logRequest(okRequest)
@@ -257,7 +256,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
 
     class Builder() {
 
-        private var method: Method = Method.GET
+        private var httpMethod: HttpMethod = HttpMethod.GET
         private var endpoint: URI? = null
         private val requestHeaders = HashMap<String, Set<String>>()
         private var requestBody: Payload? = null
@@ -265,7 +264,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         private var certificateBundle: CertificateBundle? = null
         private var certificateReference: CertificateReference? = null
         private var certFolder: File? = null
-        private var token: OAuthTokenResponse? = null
+        private var token: AccessToken? = null
         private var proxy: URI? = null
 
         init {
@@ -279,8 +278,8 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             headers("User-Agent" to setOf(userAgent))
         }
 
-        fun method(method: Method) = apply {
-            this.method = method
+        fun method(httpMethod: HttpMethod) = apply {
+            this.httpMethod = httpMethod
         }
 
         fun endpoint(endpoint: URI, params: Map<String, String>? = null) = apply {
@@ -313,7 +312,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             }
         }
 
-        fun token(token: OAuthTokenResponse) = apply {
+        fun token(token: AccessToken) = apply {
             this.token = token
         }
 
@@ -327,7 +326,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             }
             val endpoint = requireNotNull(endpoint)
             val certificates = certificateReference?.let { resolveReference(it) } ?: certificateBundle
-            val request = Request(method, endpoint, requestHeaders, requestBody, acceptTypes, certificates)
+            val request = Request(httpMethod, endpoint, requestHeaders, requestBody, acceptTypes, certificates)
             return HttpClient(proxy, request, token)
         }
 

@@ -1,7 +1,5 @@
 package de.alexanderwolz.http.client.model
 
-import de.alexanderwolz.http.client.model.Payload
-
 data class Response(
     val request: Request,
     val code: Int,

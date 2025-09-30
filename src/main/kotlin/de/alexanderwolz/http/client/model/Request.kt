@@ -5,7 +5,7 @@ import de.alexanderwolz.http.client.model.type.ContentType
 import java.net.URI
 
 data class Request(
-    val method: Method,
+    val httpMethod: HttpMethod,
     val endpoint: URI,
     val headers: Map<String, Set<String>>,
     val body: Payload? = null,
