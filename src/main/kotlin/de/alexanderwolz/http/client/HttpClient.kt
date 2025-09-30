@@ -89,7 +89,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         return when (payload) {
             is FormPayload -> {
                 val builder = FormBodyOK.Builder()
-                payload.content.forEach { entry ->
+                payload.content.entries.forEach { entry ->
                     builder.add(entry.key, entry.value)
                 }
                 builder.build()

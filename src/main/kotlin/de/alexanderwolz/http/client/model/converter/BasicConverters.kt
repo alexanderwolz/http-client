@@ -3,6 +3,7 @@ package de.alexanderwolz.http.client.model.converter
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import de.alexanderwolz.http.client.model.Form
+import de.alexanderwolz.http.client.model.payload.FormPayload
 import de.alexanderwolz.http.client.model.payload.JsonPayload
 import de.alexanderwolz.http.client.model.payload.Payload
 import de.alexanderwolz.http.client.model.payload.StringPayload
@@ -35,11 +36,12 @@ object BasicConverters {
 
     val FORM = object : IConverter<Form> {
         override fun serialize(type: ContentType, payload: Payload<Form>): ByteArray {
-            throw NotImplementedError()
+            return payload.content.encodeToString().toByteArray()
         }
 
         override fun deserialize(type: ContentType, bytes: ByteArray): Payload<Form> {
-            throw NotImplementedError()
+            val content = bytes.decodeToString()
+            return FormPayload(type, Form(content))
         }
     }
 }

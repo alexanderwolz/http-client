@@ -45,12 +45,13 @@ object StringUtils {
 
         when (body) {
             is FormPayload -> {
-                body.content.entries.forEachIndexed { i, entry ->
+                val entries = body.content.entries
+                entries.forEachIndexed { i, entry ->
                     if (i > 0) {
                         builder.append(" ")
                     }
                     builder.append("${entry.key}=${entry.value}")
-                    if (i < body.content.size - 1) {
+                    if (i < entries.size - 1) {
                         builder.append(",")
                     }
                 }
