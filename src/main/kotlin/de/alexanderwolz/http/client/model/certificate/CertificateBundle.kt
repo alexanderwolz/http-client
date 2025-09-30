@@ -6,6 +6,5 @@ import java.security.cert.Certificate
 data class CertificateBundle(
     val privateKey: PrivateKey,
     val certificates: List<Certificate>,
-    val caCertificates: List<Certificate>,
-    val verify: Boolean = true
+    val caCertificates: List<Certificate>
 )

@@ -33,7 +33,12 @@ import javax.net.ssl.*
 import okhttp3.FormBody as FormBodyOK
 
 //This class is intended to wrap HTTP libraries, in this case OKHTTP
-class HttpClient private constructor(val proxy: URI?, val request: Request, private val accessToken: AccessToken?) {
+class HttpClient private constructor(
+    val request: Request,
+    private val proxy: URI?,
+    private val verifyCert: Boolean,
+    private val accessToken: AccessToken?
+) {
 
     private val logger = Logger(javaClass)
 
@@ -193,7 +198,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         val keyManagers = createCustomKeyStore(bundle.certificates, bundle.privateKey)
 
         //generate custom trust managers
-        val trustManagers = createCustomTrustStore(bundle.caCertificates, bundle.verify)
+        val trustManagers = createCustomTrustStore(bundle.caCertificates)
 
         logger.trace { "Creating SSL socket factory .." }
         val socketFactory = SSLContext.getInstance("TLS").apply {
@@ -219,8 +224,8 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         }.keyManagers
     }
 
-    private fun createCustomTrustStore(caCertificates: List<Certificate>, verify: Boolean = true): Array<TrustManager> {
-        return if (verify) {
+    private fun createCustomTrustStore(caCertificates: List<Certificate>): Array<TrustManager> {
+        return if (verifyCert) {
             logger.trace { "Creating ca truststore (verify=true)" }
             //generate custom trust store
             TrustManagerFactory.getInstance("SunX509").apply {
@@ -254,7 +259,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
 
     class Builder() {
 
-        private var httpMethod: HttpMethod = HttpMethod.GET
+        private var httpMethod = HttpMethod.GET
         private var endpoint: URI? = null
         private val requestHeaders = HashMap<String, Set<String>>()
         private var requestBody: Payload? = null
@@ -264,6 +269,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
         private var certFolder: File? = null
         private var accessToken: AccessToken? = null
         private var proxy: URI? = null
+        private var verifyCert = true
 
         init {
             headers(
@@ -274,6 +280,10 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
 
         fun userAgent(userAgent: String) = apply {
             headers("User-Agent" to setOf(userAgent))
+        }
+
+        fun verifyCert(verifyCert: Boolean) = apply {
+            this.verifyCert = verifyCert
         }
 
         fun method(httpMethod: HttpMethod) = apply {
@@ -329,7 +339,7 @@ class HttpClient private constructor(val proxy: URI?, val request: Request, priv
             val endpoint = requireNotNull(endpoint)
             val certificates = certificateReference?.let { resolveReference(it) } ?: certificateBundle
             val request = Request(httpMethod, endpoint, requestHeaders, requestBody, acceptTypes, certificates)
-            return HttpClient(proxy, request, accessToken)
+            return HttpClient(request, proxy, verifyCert, accessToken)
         }
 
         private fun resolveEndpoint(endpoint: URI, params: Map<String, String>): URI {

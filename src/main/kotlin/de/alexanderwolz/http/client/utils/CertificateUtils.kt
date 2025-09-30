@@ -1,7 +1,7 @@
 package de.alexanderwolz.http.client.utils
 
-import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.log.Logger
+import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cert.X509v1CertificateBuilder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
@@ -201,10 +201,18 @@ object CertificateUtils {
             return file
         }
         certFolder?.let {
-            val certFile = File(certFolder, file.path)
-            if (certFile.exists()) {
-                logger.trace { "Found specified file in certificate folder: ${certFile.path}" }
-                return certFile
+            File(certFolder, file.path).also {
+                if (it.exists()) {
+                    logger.trace { "Found specified file in certificate folder: ${it.path}" }
+                    return it
+                }
+            }
+            val root = File("").absoluteFile
+            File(root, "${certFolder.path}/${file.path}").also {
+                if (it.exists()) {
+                    logger.trace { "Found specified file in certificate folder: ${it.path}" }
+                    return it
+                }
             }
         }
         throw NoSuchElementException("Could not resolve file: ${file.path}")
