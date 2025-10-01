@@ -2,6 +2,8 @@ package de.alexanderwolz.http.client
 
 import com.google.gson.JsonElement
 import de.alexanderwolz.commons.log.Logger
+import de.alexanderwolz.commons.util.CertificateUtils
+import de.alexanderwolz.commons.util.StringUtils
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.model.*
@@ -11,8 +13,6 @@ import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import de.alexanderwolz.http.client.model.type.ContentType
 import de.alexanderwolz.http.client.socket.SslSocket
-import de.alexanderwolz.http.client.utils.CertificateUtils
-import de.alexanderwolz.http.client.utils.StringUtils
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
@@ -153,7 +153,7 @@ class HttpClient private constructor(
             builder.append("\n\t\tHeaders: $headers")
             builder.append("\n\t\tBody:    ${request.body?.let { "${it.type.clazz.java.name}" } ?: ": No request body"}")
             if (request.body != null) {
-                StringUtils.getBodyString(request.body).lines().forEach { builder.append("\n\t\t\t$it") }
+                getBodyString(request.body).lines().forEach { builder.append("\n\t\t\t$it") }
             }
             builder.toString()
         }
@@ -168,11 +168,18 @@ class HttpClient private constructor(
             builder.append("\n\t\tHeaders: ${response.headers}")
             builder.append("\n\t\tBody:    ${response.body?.let { "${it.type.clazz.java.name}" } ?: ": No response body"}")
             if (response.body != null) {
-                StringUtils.getBodyString(response.body).lines().forEach { builder.append("\n\t\t\t$it") }
+                getBodyString(response.body).lines().forEach { builder.append("\n\t\t\t$it") }
             }
 
             builder.toString()
         }
+    }
+
+    fun getBodyString(payload: Payload?): String {
+        if (payload == null) return "No body"
+        return StringBuilder().apply {
+            append(payload.bytes.decodeToString()) //TODO parse element?
+        }.toString()
     }
 
     private fun createOkHttpClient(bundle: CertificateBundle? = null, proxy: URI? = null): OkHttpClient {
