@@ -328,7 +328,7 @@ class HttpClient private constructor(
             this.accessToken = token
         }
 
-        fun proxy(proxy: URI) = apply {
+        fun proxy(proxy: URI?) = apply {
             this.proxy = proxy
         }
 
