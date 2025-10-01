@@ -5,26 +5,25 @@ import com.google.gson.JsonElement
 import de.alexanderwolz.commons.util.CertificateUtils
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
-import de.alexanderwolz.http.client.model.Form
-import de.alexanderwolz.http.client.model.HttpMethod
-import de.alexanderwolz.http.client.model.Payload
+import de.alexanderwolz.http.client.model.*
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
-import de.alexanderwolz.http.client.model.converter.Converter
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
-import de.alexanderwolz.http.client.model.type.ContentType
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.math.BigInteger
 import java.net.URI
 import java.net.UnknownHostException
-import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class HttpClientTest {
+
+    @TempDir
+    private lateinit var tmpDir: File
 
     @Test
     fun testSimpleGetWithJson() {
@@ -214,7 +213,7 @@ class HttpClientTest {
 
     @Test
     fun testGetWithCustomType() {
-        val type = Types.CUSTOM_NAME
+        val type = CustomContentTypes.CUSTOM_NAME
         val content = CustomName("MyName")
         val payload = Payload(type, content)
 
@@ -233,18 +232,14 @@ class HttpClientTest {
         assertEquals("application/customName", response.request.body?.type?.mediaType)
     }
 
-    private data class CustomName(val name: String)
-    private enum class Types(override val mediaType: String, override val clazz: KClass<*>) : ContentType {
-        CUSTOM_NAME("application/customName", CustomName::class) {
-            override val converter = Converter(
-                { it.name.toByteArray() },
-                { CustomName(it.decodeToString()) })
-        };
-    }
-
     @Test
     fun testCertificateReferences() {
-        val references = CertificateReference(File("key.pem"), File("cert.pem"))
+
+        val keyFile = File(tmpDir, "key.pem")
+        val certFile = File(tmpDir, "cert.pem")
+        CertificateUtils.writeNewCertPair(keyFile, certFile, "CN=TEST")
+
+        val references = CertificateReference(keyFile, certFile)
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .verifyCert(false)

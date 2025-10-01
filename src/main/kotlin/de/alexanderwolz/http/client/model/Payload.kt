@@ -1,8 +1,12 @@
 package de.alexanderwolz.http.client.model
 
+import de.alexanderwolz.commons.log.Logger
+import de.alexanderwolz.http.client.model.converter.Converter
 import de.alexanderwolz.http.client.model.type.ContentType
 
 class Payload {
+
+    private val logger = Logger(javaClass)
 
     val type: ContentType
     val bytes: ByteArray
@@ -22,20 +26,30 @@ class Payload {
         typeCheck()
     }
 
-    private fun typeCheck(){
-        if(!type.clazz.java.isAssignableFrom(element::class.java)){
+    private fun typeCheck() {
+        if (!type.clazz.java.isAssignableFrom(element::class.java)) {
             throw IllegalStateException("Element does not match content-type class: ${element::class.java} -> ${type.clazz.java}")
         }
     }
 
     private fun deserialize(): Any {
-        return type.converter.deserialize(bytes)!!
+        return type.converter.deserialize(bytes, type).apply {
+            logger.trace {
+                "Deserialized from media type '${type.mediaType}' into " +
+                        "${this::class.java} (contentType class=${type.clazz.java})"
+            }
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun serialize(): ByteArray {
-        val serialize = type.converter.serialize as (Any) -> ByteArray
-        return serialize(element)
+        val converter = type.converter as Converter<Any>
+        return converter.serialize(element, type).apply {
+            logger.trace {
+                "Serialized from element ${element::class.java} into ByteArray " +
+                        "(media type '${type.mediaType}', contentType class=${type.clazz.java})"
+            }
+        }
     }
 
     override fun equals(other: Any?): Boolean {
