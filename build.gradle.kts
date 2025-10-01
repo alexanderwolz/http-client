@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "de.alexanderwolz"
-version = "1.2.0"
+version = "1.2.1"
 
 repositories {
     mavenCentral()
@@ -16,16 +16,16 @@ repositories {
 java {
     withSourcesJar()
     withJavadocJar()
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(17)
 }
 
 dependencies {
-    api("org.slf4j:slf4j-api:2.0.17")
+    implementation("de.alexanderwolz:commons-log:1.0.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.81")
     implementation("com.google.code.gson:gson:2.13.1")
@@ -56,7 +56,6 @@ publishing {
     publications {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
-            artifactId = "http-client"
             pom {
                 name.set("HTTP Client")
                 description.set("Sophisticated http client wrapper")
