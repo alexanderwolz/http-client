@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "de.alexanderwolz"
-version = "1.2.1"
+version = "1.3.0"
 
 repositories {
     mavenCentral()
@@ -26,6 +26,7 @@ kotlin {
 
 dependencies {
     implementation("de.alexanderwolz:commons-log:1.0.0")
+    implementation("de.alexanderwolz:commons-util:1.1.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.81")
     implementation("com.google.code.gson:gson:2.13.1")

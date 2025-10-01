@@ -2,6 +2,7 @@ package de.alexanderwolz.http.client
 
 import com.google.gson.Gson
 import com.google.gson.JsonElement
+import de.alexanderwolz.commons.util.CertificateUtils
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.model.Form
@@ -12,9 +13,9 @@ import de.alexanderwolz.http.client.model.certificate.CertificateReference
 import de.alexanderwolz.http.client.model.converter.Converter
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import de.alexanderwolz.http.client.model.type.ContentType
-import de.alexanderwolz.http.client.utils.CertificateUtils
 import org.junit.jupiter.api.Test
 import java.io.File
+import java.math.BigInteger
 import java.net.URI
 import java.net.UnknownHostException
 import kotlin.reflect.KClass
@@ -259,11 +260,8 @@ class HttpClientTest {
     @Test
     fun testCertificateBundle() {
 
-        val root = File("").absoluteFile
-        val privateKeyText = File(root, "/src/test/resources/key.pem").absoluteFile.readText()
-        val privateKey = CertificateUtils.readPrivateKey(privateKeyText)
-        val certificates = CertificateUtils.readCertificates(File(root, "/src/test/resources/cert.pem"))
-        val bundle = CertificateBundle(privateKey, certificates, emptyList())
+        val certificatePair = CertificateUtils.generateNewCertificatePair("CN=Test", BigInteger.ZERO)
+        val bundle = CertificateBundle(certificatePair.first, listOf(certificatePair.second), emptyList())
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
