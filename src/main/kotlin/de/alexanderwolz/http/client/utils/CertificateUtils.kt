@@ -1,6 +1,6 @@
 package de.alexanderwolz.http.client.utils
 
-import de.alexanderwolz.http.client.log.Logger
+import de.alexanderwolz.commons.log.Logger
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cert.X509v1CertificateBuilder

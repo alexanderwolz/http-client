@@ -1,9 +1,9 @@
 package de.alexanderwolz.http.client
 
 import com.google.gson.JsonElement
+import de.alexanderwolz.commons.log.Logger
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
-import de.alexanderwolz.http.client.log.Logger
 import de.alexanderwolz.http.client.model.*
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
