@@ -61,9 +61,10 @@ class HttpClientTest {
             .accessToken(AccessToken("haha", "Bearer", 60, "scope"))
             .proxy(URI.create("http://localhost:8080"))
             .headers(Pair("user", setOf("MyName")))
-            .headers("server" to setOf("ATARI"))
+            .headers("server" to setOf("ATARI")) //adds
             .userAgent("Agent")
-            .method(HttpMethod.DELETE)
+            .method(HttpMethod.PUT)
+            .method(HttpMethod.DELETE) //overwrites
             .endpoint(URI.create("/endpoint"))
             .build()
         assertNotNull(httpClient)
@@ -135,6 +136,8 @@ class HttpClientTest {
             assertTrue { e.reason.code == Reason.CODE_CLIENT_ERROR }
             assertTrue { e.cause is UnknownHostException }
             assertTrue { e.reason.description == e.cause?.message }
+            assertNotNull(e.response)
+            assertNotNull(e.request)
         }
     }
 
