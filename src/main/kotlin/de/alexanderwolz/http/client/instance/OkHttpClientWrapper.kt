@@ -12,7 +12,6 @@ import de.alexanderwolz.http.client.model.Request
 import de.alexanderwolz.http.client.model.Response
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.payload.Payload
-import de.alexanderwolz.http.client.model.payload.PayloadImpl
 import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import de.alexanderwolz.http.client.model.type.ContentType
@@ -156,13 +155,13 @@ internal class OkHttpClientWrapper(
                 val contentType = acceptTypes.find { it.mediaType.startsWith(normalized) }
                 if (contentType != null) {
                     logger.trace { "Found content type in specified accept types: $contentType (${contentType.clazz.java})" }
-                    return PayloadImpl(contentType, bytes)
+                    return Payload.create(contentType, bytes)
                 } else {
                     logger.warn { "Could not determine content-type from request accept types (${request.acceptTypes?.joinToString()})" }
                     val basicType = BasicContentTypes.entries.find { it.mediaType.startsWith(normalized) }
                     if (basicType != null) {
                         logger.trace { "Found basic content type: $basicType" }
-                        return PayloadImpl(basicType, bytes)
+                        return Payload.create(basicType, bytes)
                     } else {
                         logger.warn { "Could not determine content-type from basic types" }
                         logger.warn { "Consider setting the appropriate accept type using ${HttpClient.Builder::class}" }

@@ -10,7 +10,7 @@ import de.alexanderwolz.http.client.instance.OkHttpClientWrapper
 import de.alexanderwolz.http.client.model.*
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
-import de.alexanderwolz.http.client.model.payload.PayloadImpl
+import de.alexanderwolz.http.client.model.payload.Payload
 import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
@@ -136,7 +136,7 @@ class HttpClientTest {
             assertTrue { e.reason.code == Reason.CODE_CLIENT_ERROR }
             assertTrue { e.cause is UnknownHostException }
             assertTrue { e.reason.description == e.cause?.message }
-            assertNotNull(e.response)
+            assertNull(e.response)
             assertNotNull(e.request)
         }
     }
@@ -168,7 +168,7 @@ class HttpClientTest {
         startSimpleJsonServer()
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
-        val payload = PayloadImpl(BasicContentTypes.APPLICATION_JSON, jsonString)
+        val payload = Payload.create(BasicContentTypes.APPLICATION_JSON, jsonString)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -193,7 +193,7 @@ class HttpClientTest {
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
         val jsonElement = Gson().toJsonTree(jsonString)
-        val payload = PayloadImpl(BasicContentTypes.GSON, jsonElement)
+        val payload = Payload.create(BasicContentTypes.GSON, jsonElement)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -217,7 +217,7 @@ class HttpClientTest {
         startSimpleJsonServer()
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
-        val payload = PayloadImpl(BasicContentTypes.APPLICATION_JSON, jsonString.toByteArray())
+        val payload = Payload.create(BasicContentTypes.APPLICATION_JSON, jsonString.toByteArray())
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -241,7 +241,7 @@ class HttpClientTest {
         startSimpleJsonServer()
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
-        val payload = PayloadImpl(BasicContentTypes.GSON, jsonString.toByteArray())
+        val payload = Payload.create(BasicContentTypes.GSON, jsonString.toByteArray())
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -265,7 +265,7 @@ class HttpClientTest {
         startSimpleJsonServer()
 
         val form = Form(mapOf("key1" to "value1"))
-        val payload = PayloadImpl(BasicContentTypes.FORM_URL_ENCODED, form)
+        val payload = Payload.create(BasicContentTypes.FORM_URL_ENCODED, form)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -288,7 +288,7 @@ class HttpClientTest {
 
         val type = CustomContentTypes.CUSTOM_NAME
         val content = CustomName("MyName")
-        val payload = PayloadImpl(type, content)
+        val payload = Payload.create(type, content)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
