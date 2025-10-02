@@ -17,11 +17,11 @@ interface Payload {
         }
 
         fun create(type: ContentType, bytes: ByteArray): Payload {
-            return PayloadImpl(type, bytes)
+            return object : AbstractPayload(type, bytes) {}
         }
 
         fun create(type: ContentType, element: Any): Payload {
-            return PayloadImpl(type, element)
+            return object : AbstractPayload(type, element) {}
         }
     }
 }

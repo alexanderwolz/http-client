@@ -4,6 +4,9 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import de.alexanderwolz.commons.util.CertificateUtils
+import de.alexanderwolz.http.client.Constants.CONTENT_PRODUCT_JSON
+import de.alexanderwolz.http.client.Constants.CONTENT_WRAPPED_PRODUCT_JSON
+import de.alexanderwolz.http.client.Constants.MEDIA_TYPE_PRODUCT
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.instance.OkHttpClientWrapper
@@ -70,10 +73,10 @@ class HttpClientTest {
         assertNotNull(httpClient)
         assertIs<OkHttpClientWrapper>(httpClient)
         assertNotNull(httpClient.request)
-        assertTrue { httpClient.request.headers.contains("user")}
-        assertTrue { httpClient.request.headers.contains("server")}
-        assertTrue { httpClient.request.headers.contains("authorization")}
-        assertTrue { httpClient.request.headers.contains("user-agent")}
+        assertTrue { httpClient.request.headers.contains("user") }
+        assertTrue { httpClient.request.headers.contains("server") }
+        assertTrue { httpClient.request.headers.contains("authorization") }
+        assertTrue { httpClient.request.headers.contains("user-agent") }
         assertEquals(HttpMethod.DELETE, httpClient.request.httpMethod)
         assertEquals(URI.create("/endpoint"), httpClient.request.endpoint)
     }
@@ -270,38 +273,68 @@ class HttpClientTest {
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .endpoint(mockServer.url("/endpoint").toUri())
             .accept(BasicContentTypes.APPLICATION_JSON)
             .body(payload)
             .build()
         val response = httpClient.execute()
-        assertEquals(415, response.code)
-        assertEquals("Unsupported Media Type", response.message)
         assertEquals("application/json", response.body.type.mediaType)
-        assertEquals("application/x-www-form-urlencoded", response.request.body?.type?.mediaType)
+        assertEquals("application/x-www-form-urlencoded", response.request.body.type.mediaType)
     }
 
     @Test
-    fun testGetWithCustomType() {
+    fun testGetWithCustomTypeProduct() {
 
-        startSimpleJsonServer()
+        startProductServer()
 
-        val type = CustomContentTypes.CUSTOM_NAME
-        val content = CustomName("MyName")
+        val type = CustomContentTypes.PRODUCT
+        val content = Product("2", "Bananas")
         val payload = Payload.create(type, content)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
-            .accept(BasicContentTypes.APPLICATION_JSON)
+            .endpoint(mockServer.url("/endpoint").toUri())
+            .accept(CustomContentTypes.PRODUCT)
             .body(payload)
             .build()
         val response = httpClient.execute()
-        assertEquals(415, response.code)
-        assertEquals("Unsupported Media Type", response.message)
-        assertEquals("application/json", response.body.type.mediaType)
-        assertEquals("application/customName", response.request.body?.type?.mediaType)
+        assertEquals(MEDIA_TYPE_PRODUCT, response.body.type.mediaType)
+        assertEquals(MEDIA_TYPE_PRODUCT, response.request.body.type.mediaType)
+    }
+
+    @Test
+    fun testGetWithCustomTypeWrappedProduct() {
+
+        // use case: maybe we want to work with an element, but it must be wrapped into something
+        // else during transfer to and from server.
+        // here: we want to use product, but server only accepts WrappedProduct
+        // typical use case: JAXB elements with ObjectFactory -> work with element
+
+        //User creates payload with product -> server needs wrapped
+        //Server sends content, client creates payload - client need unwrapped
+
+        startWrappedProductServer()
+
+        //we send product to server, it returns wrappedProduct, but we use wrapping
+        val product = Product("666", "Satanic Sandman")
+        val payload = Payload.create(CustomContentTypes.PRODUCT, product)
+        assertNotNull(payload)
+
+        val client = HttpClient.Builder()
+            .method(HttpMethod.POST)
+            .endpoint(mockServer.url("/endpoint").toUri())
+            .accept(CustomContentTypes.WRAPPED_PRODUCT)
+            .body(payload)
+            .build()
+
+        val response = client.execute()
+        assertNotNull(response)
+
+        val expectedPayload = Gson().fromJson(CONTENT_PRODUCT_JSON, Product::class.java)
+
+        assertEquals(expectedPayload, response.body.element)
+
     }
 
     @Test
@@ -415,14 +448,34 @@ class HttpClientTest {
 
     private fun startSimpleJsonServer(): String {
 
-        val json = "{\"id\":\"1\",\"product\":\"apple\"}"
         val mockResponse = MockResponse().apply {
             setResponseCode(200)
-            setBody(json)
+            setBody(CONTENT_PRODUCT_JSON)
             addHeader("Content-Type", "application/json")
         }
         mockServer.enqueue(mockResponse)
-        return json
+        return CONTENT_PRODUCT_JSON
+    }
+
+    private fun startProductServer(): String {
+
+        val mockResponse = MockResponse().apply {
+            setResponseCode(200)
+            setBody(CONTENT_PRODUCT_JSON)
+            addHeader("Content-Type", CustomContentTypes.PRODUCT.mediaType)
+        }
+        mockServer.enqueue(mockResponse)
+        return CONTENT_PRODUCT_JSON
+    }
+
+    private fun startWrappedProductServer(): String {
+        val mockResponse = MockResponse().apply {
+            setResponseCode(200)
+            setBody(CONTENT_WRAPPED_PRODUCT_JSON)
+            addHeader("Content-Type", CustomContentTypes.PRODUCT.mediaType)
+        }
+        mockServer.enqueue(mockResponse)
+        return CONTENT_WRAPPED_PRODUCT_JSON
     }
 
 }
