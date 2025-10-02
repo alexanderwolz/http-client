@@ -3,6 +3,7 @@ package de.alexanderwolz.http.client
 import de.alexanderwolz.commons.util.CertificateUtils
 import de.alexanderwolz.commons.util.StringUtils
 import de.alexanderwolz.http.client.instance.OkHttpClientWrapper
+import de.alexanderwolz.http.client.instance.Settings
 import de.alexanderwolz.http.client.model.HttpMethod
 import de.alexanderwolz.http.client.model.Request
 import de.alexanderwolz.http.client.model.Response
@@ -100,15 +101,18 @@ interface HttpClient {
             val endpoint = requireNotNull(endpoint)
             val certificates = certificateReference?.let { resolveReference(it) } ?: certificateBundle
 
-            return OkHttpClientWrapper(
-                proxy, verifyCert, certificates,
-                httpMethod,
-                endpoint,
-                requestHeaders,
-                requestBody,
-                acceptTypes,
-                accessToken
-            )
+            if (Settings.library == Settings.LibraryType.OK_HTTP) {
+                return OkHttpClientWrapper(
+                    proxy, verifyCert, certificates,
+                    httpMethod,
+                    endpoint,
+                    requestHeaders,
+                    requestBody,
+                    acceptTypes,
+                    accessToken
+                )
+            }
+            throw NoSuchElementException("Unknown HTTP library '${Settings.library}'")
         }
 
         private fun resolveEndpoint(endpoint: URI, params: Map<String, String>): URI {
