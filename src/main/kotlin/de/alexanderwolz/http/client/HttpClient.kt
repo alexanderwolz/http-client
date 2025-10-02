@@ -6,9 +6,14 @@ import de.alexanderwolz.commons.util.CertificateUtils
 import de.alexanderwolz.commons.util.StringUtils
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
-import de.alexanderwolz.http.client.model.*
+import de.alexanderwolz.http.client.model.Form
+import de.alexanderwolz.http.client.model.HttpMethod
+import de.alexanderwolz.http.client.model.Request
+import de.alexanderwolz.http.client.model.Response
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
+import de.alexanderwolz.http.client.model.payload.Payload
+import de.alexanderwolz.http.client.model.payload.PayloadImpl
 import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import de.alexanderwolz.http.client.model.type.ContentType
@@ -63,7 +68,7 @@ class HttpClient private constructor(
             okRequestBuilder.header("Accept", types.joinToString { it.mediaType })
         }
 
-        val okRequestBody = request.body?.let { convertRequestBody(it) }
+        val okRequestBody = convertRequestBody(request.body)
         okRequestBuilder.method(request.httpMethod.name, okRequestBody)
 
         val okRequest = okRequestBuilder.build()
@@ -87,23 +92,26 @@ class HttpClient private constructor(
         }
     }
 
-    private fun convertRequestBody(payload: Payload): RequestBody {
+    private fun convertRequestBody(payload: Payload): RequestBody? {
+        if (payload == Payload.EMPTY) {
+            return null
+        }
         val type = payload.type
         return when (payload.element) {
             is Form -> {
                 val builder = FormBodyOK.Builder()
-                payload.element.entries.forEach { entry ->
+                (payload.element as Form).entries.forEach { entry ->
                     builder.add(entry.key, entry.value)
                 }
                 builder.build()
             }
 
             is String -> {
-                payload.element.toRequestBody(type.mediaType.toMediaType())
+                (payload.element as String).toRequestBody(type.mediaType.toMediaType())
             }
 
             is JsonElement -> {
-                payload.element.asString.toRequestBody(type.mediaType.toMediaType())
+                (payload.element as JsonElement).asString.toRequestBody(type.mediaType.toMediaType())
             }
 
             else -> {
@@ -112,7 +120,7 @@ class HttpClient private constructor(
         }
     }
 
-    private fun convertResponseBody(okResponse: okhttp3.Response): Payload? {
+    private fun convertResponseBody(okResponse: okhttp3.Response): Payload {
         okResponse.body?.let { okBody ->
             val bytes = okBody.source().use { it.readByteArray() }
             val mediaType = okResponse.headers["content-type"]
@@ -123,13 +131,13 @@ class HttpClient private constructor(
                 val contentType = acceptTypes.find { it.mediaType.startsWith(normalized) }
                 if (contentType != null) {
                     logger.trace { "Found content type in specified accept types: $contentType (${contentType.clazz.java})" }
-                    return Payload(contentType, bytes)
+                    return PayloadImpl(contentType, bytes)
                 } else {
                     logger.warn { "Could not determine content-type from request accept types (${request.acceptTypes?.joinToString()})" }
                     val basicType = BasicContentTypes.entries.find { it.mediaType.startsWith(normalized) }
                     if (basicType != null) {
                         logger.trace { "Found basic content type: $basicType" }
-                        return Payload(basicType, bytes)
+                        return PayloadImpl(basicType, bytes)
                     } else {
                         logger.warn { "Could not determine content-type from basic types" }
                         logger.warn { "Consider setting the appropriate accept type using ${Builder::class}" }
@@ -140,43 +148,42 @@ class HttpClient private constructor(
                 logger.trace { "Server did not return any content-type (but content-length=${bytes.size}" }
             }
         }
-        return null
+        return Payload.EMPTY
     }
 
     private fun logRequest(okRequest: okhttp3.Request) {
         logger.trace {
+            val bodyType = request.body.takeIf { it != Payload.EMPTY }
+                ?.let { "ContentType: ${it.type}->${it.type.clazz.java.name}" } ?: "No request body"
             val headers = okRequest.headers.toMultimap().entries.joinToString()
             val builder = StringBuilder("Executing request at ${Date()}:")
             builder.append("\n\tRequest")
             builder.append("\n\t\tMethod:  ${okRequest.method}")
             builder.append("\n\t\tURL:     ${okRequest.url}")
             builder.append("\n\t\tHeaders: $headers")
-            builder.append("\n\t\tBody:    ${request.body?.let { "${it.type.clazz.java.name}" } ?: ": No request body"}")
-            if (request.body != null) {
-                getBodyString(request.body).lines().forEach { builder.append("\n\t\t\t$it") }
-            }
+            builder.append("\n\t\tBody:    $bodyType")
+            getBodyString(request.body)?.lines()?.forEach { builder.append("\n\t\t\t$it") }
             builder.toString()
         }
     }
 
     private fun logResponse(response: Response) {
         logger.trace {
+            val bodyType = response.body.takeIf { it != Payload.EMPTY }
+                ?.let { "ContentType: ${it.type}->${it.type.clazz.java.name}" } ?: "No response body"
             val builder = StringBuilder("Received server response at ${Date()}:")
             builder.append("\n\tResponse")
             builder.append("\n\t\tStatus:  ${response.code}")
             builder.append("\n\t\tMessage: ${response.message?.let { it.ifEmpty { "No message" } } ?: "No message"}")
             builder.append("\n\t\tHeaders: ${response.headers}")
-            builder.append("\n\t\tBody:    ${response.body?.let { "${it.type.clazz.java.name}" } ?: ": No response body"}")
-            if (response.body != null) {
-                getBodyString(response.body).lines().forEach { builder.append("\n\t\t\t$it") }
-            }
-
+            builder.append("\n\t\tBody:    $bodyType")
+            getBodyString(response.body)?.lines()?.forEach { builder.append("\n\t\t\t$it") }
             builder.toString()
         }
     }
 
-    fun getBodyString(payload: Payload?): String {
-        if (payload == null) return "No body"
+    fun getBodyString(payload: Payload): String? {
+        if (payload == Payload.EMPTY) return null
         return StringBuilder().apply {
             append(payload.bytes.decodeToString()) //TODO parse element?
         }.toString()
@@ -269,7 +276,7 @@ class HttpClient private constructor(
         private var httpMethod = HttpMethod.GET
         private var endpoint: URI? = null
         private val requestHeaders = HashMap<String, Set<String>>()
-        private var requestBody: Payload? = null
+        private var requestBody = Payload.EMPTY
         private var acceptTypes: Set<ContentType>? = null
         private var certificateBundle: CertificateBundle? = null
         private var certificateReference: CertificateReference? = null

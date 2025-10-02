@@ -1,16 +1,16 @@
-package de.alexanderwolz.http.client.model
+package de.alexanderwolz.http.client.model.payload
 
 import de.alexanderwolz.commons.log.Logger
 import de.alexanderwolz.http.client.model.converter.Converter
 import de.alexanderwolz.http.client.model.type.ContentType
 
-class Payload {
+internal class PayloadImpl : Payload {
 
     private val logger = Logger(javaClass)
 
-    val type: ContentType
-    val bytes: ByteArray
-    val element: Any
+    override val type: ContentType
+    override val bytes: ByteArray
+    override val element: Any
 
     constructor(type: ContentType, bytes: ByteArray) {
         this.type = type
