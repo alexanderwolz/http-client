@@ -344,14 +344,14 @@ class HttpClientTest {
         val client = HttpClient.Builder()
             .method(HttpMethod.GET)
             .endpoint(mockServer.url("/endpoint").toUri())
-            .accept(BasicContentTypes.OAUTH_JSON)
+            .accept(BasicContentTypes.OAUTH_TOKEN)
             .build()
 
         val response = client.execute()
         assertNotNull(response)
         assertEquals(200, response.code)
         assertNotNull(response.body)
-        assertEquals(BasicContentTypes.OAUTH_JSON, response.body.type)
+        assertEquals(BasicContentTypes.OAUTH_TOKEN, response.body.type)
         assertEquals(OAuthTokenResponse::class, response.body.element::class)
         val tokenResponse = response.body.element as OAuthTokenResponse
         assertEquals(jwtJsonElement.get("access_token").asString, tokenResponse.accessToken)

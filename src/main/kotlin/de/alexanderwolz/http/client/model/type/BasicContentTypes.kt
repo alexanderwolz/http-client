@@ -4,6 +4,7 @@ import com.google.gson.JsonElement
 import de.alexanderwolz.http.client.model.Form
 import de.alexanderwolz.http.client.model.converter.BasicConverters
 import de.alexanderwolz.http.client.model.converter.Converter
+import de.alexanderwolz.http.client.model.token.OAuthErrorResponse
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
 import kotlin.reflect.KClass
 
@@ -19,5 +20,6 @@ enum class BasicContentTypes(
     APPLICATION_JSON("application/json", String::class, BasicConverters.STRING),
     FORM_URL_ENCODED("application/x-www-form-urlencoded", Form::class, BasicConverters.FORM),
     GSON("application/json", JsonElement::class, BasicConverters.JSON_ELEMENT),
-    OAUTH_JSON("application/json", OAuthTokenResponse::class, BasicConverters.OAUTH_TOKEN);
+    OAUTH_TOKEN("application/json", OAuthTokenResponse::class, BasicConverters.OAUTH_TOKEN),
+    OAUTH_ERROR("application/json", OAuthErrorResponse::class, BasicConverters.OAUTH_TOKEN_ERROR);
 }
