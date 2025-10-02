@@ -3,6 +3,7 @@ package de.alexanderwolz.http.client.model.converter
 import com.google.gson.Gson
 import com.google.gson.JsonElement
 import de.alexanderwolz.http.client.model.Form
+import de.alexanderwolz.http.client.model.token.OAuthErrorResponse
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
 import de.alexanderwolz.http.client.model.type.ContentType
 
@@ -35,6 +36,16 @@ object BasicConverters {
 
         override fun deserialize(bytes: ByteArray, type: ContentType): OAuthTokenResponse {
             return Gson().fromJson(bytes.decodeToString(), OAuthTokenResponse::class.java)
+        }
+    }
+
+    val OAUTH_TOKEN_ERROR = object : Converter<OAuthErrorResponse> {
+        override fun serialize(element: OAuthErrorResponse, type: ContentType): ByteArray {
+            return Gson().toJson(element).toByteArray()
+        }
+
+        override fun deserialize(bytes: ByteArray, type: ContentType): OAuthErrorResponse {
+            return Gson().fromJson(bytes.decodeToString(), OAuthErrorResponse::class.java)
         }
     }
 
