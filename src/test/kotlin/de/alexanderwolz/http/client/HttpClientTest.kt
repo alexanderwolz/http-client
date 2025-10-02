@@ -280,9 +280,9 @@ class HttpClientTest {
     }
 
     @Test
-    fun testGetWithCustomType() {
+    fun testGetWithCustomTypeProduct() {
 
-        startSimpleJsonServer()
+        startProductServer()
 
         val type = CustomContentTypes.PRODUCT
         val content = Product("2", "Bananas")
@@ -292,27 +292,31 @@ class HttpClientTest {
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
             .endpoint(mockServer.url("/endpoint").toUri())
-            .accept(BasicContentTypes.APPLICATION_JSON)
+            .accept(CustomContentTypes.PRODUCT)
             .body(payload)
             .build()
         val response = httpClient.execute()
-        assertEquals("application/json", response.body.type.mediaType)
-        assertEquals("application/product", response.request.body.type.mediaType)
+        assertEquals(MEDIA_TYPE_PRODUCT, response.body.type.mediaType)
+        assertEquals(MEDIA_TYPE_PRODUCT, response.request.body.type.mediaType)
     }
 
     @Test
-    fun testGetWithWrappedPayload() {
+    fun testGetWithCustomTypeWrappedProduct() {
 
         // use case: maybe we want to work with an element, but it must be wrapped into something
         // else during transfer to and from server.
         // here: we want to use product, but server only accepts WrappedProduct
         // typical use case: JAXB elements with ObjectFactory -> work with element
 
-        startWrappedJsonServer()
+        //User creates payload with product -> server needs wrapped
+        //Server sends content, client creates payload - client need unwrapped
+
+        startWrappedProductServer()
 
         val product = Product("666", "Satanic Sandman")
-        val payload = Payload.create(CustomContentTypes.WRAPPED_PRODUCT, product)
-        assertNotNull(payload)
+        val wrapped = WrappedProduct(product)
+        val wrappedProductPayload = Payload.create(CustomContentTypes.WRAPPED_PRODUCT, wrapped)
+        assertNotNull(wrappedProductPayload)
 
         val client = HttpClient.Builder()
             .method(HttpMethod.GET)
@@ -437,27 +441,41 @@ class HttpClientTest {
 
     private fun startSimpleJsonServer(): String {
 
-        val json = "{\"id\":\"1\",\"product\":\"apple\"}"
         val mockResponse = MockResponse().apply {
             setResponseCode(200)
-            setBody(json)
+            setBody(PRODUCT_APPLE_JSON)
             addHeader("Content-Type", "application/json")
         }
         mockServer.enqueue(mockResponse)
-        return json
+        return PRODUCT_APPLE_JSON
     }
 
-    private fun startWrappedJsonServer(): String {
+    private fun startProductServer(): String {
 
-        val json = "{\"id\":\"1\",\"name\":\"apple\"}"
-        val wrapped = "{\"element\": \"$json\"}"
+        val mockResponse = MockResponse().apply {
+            setResponseCode(200)
+            setBody(PRODUCT_APPLE_JSON)
+            addHeader("Content-Type", CustomContentTypes.PRODUCT.mediaType)
+        }
+        mockServer.enqueue(mockResponse)
+        return PRODUCT_APPLE_JSON
+    }
+
+    private fun startWrappedProductServer(): String {
+        val wrapped = "{\"element\":${PRODUCT_APPLE_JSON}}"
         val mockResponse = MockResponse().apply {
             setResponseCode(200)
             setBody(wrapped)
-            addHeader("Content-Type", "application/json")
+            addHeader("Content-Type", CustomContentTypes.PRODUCT.mediaType)
         }
         mockServer.enqueue(mockResponse)
-        return json
+        return wrapped
     }
+
+    companion object {
+        private const val PRODUCT_APPLE_JSON = "{\"id\":\"1\",\"name\":\"apple\"}"
+    }
+
+
 
 }

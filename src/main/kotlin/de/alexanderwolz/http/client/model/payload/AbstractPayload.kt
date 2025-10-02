@@ -3,26 +3,32 @@ package de.alexanderwolz.http.client.model.payload
 import de.alexanderwolz.commons.log.Logger
 import de.alexanderwolz.http.client.model.converter.Converter
 import de.alexanderwolz.http.client.model.type.ContentType
+import kotlin.reflect.KClass
 
-internal class PayloadImpl : Payload {
+abstract class AbstractPayload : Payload {
 
-    private val logger = Logger(javaClass)
+    protected val logger = Logger(javaClass)
 
-    override val type: ContentType
-    override val bytes: ByteArray
-    override val element: Any
+    override lateinit var type: ContentType
+        protected set
+
+    override lateinit var bytes: ByteArray
+        protected set
+
+    override lateinit var element: Any
+        protected set
 
     constructor(type: ContentType, bytes: ByteArray) {
         this.type = type
         this.bytes = bytes
-        this.element = deserialize()
+        this.element = deserialize(bytes)
         typeCheck()
     }
 
     constructor(type: ContentType, element: Any) {
         this.type = type
+        this.bytes = serialize(element)
         this.element = element
-        this.bytes = serialize()
         typeCheck()
     }
 
@@ -33,9 +39,10 @@ internal class PayloadImpl : Payload {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun serialize(): ByteArray {
+    private fun serialize(element: Any): ByteArray {
         val converter = type.converter as Converter<Any>
-        return converter.serialize(element, type).apply {
+        val clazz = type.clazz as KClass<Any>
+        return converter.serialize(element, clazz).apply {
             logger.trace {
                 "Serialized from element ${element::class.java} into ByteArray " +
                         "(media type '${type.mediaType}', contentType class=${type.clazz.java})"
@@ -43,8 +50,11 @@ internal class PayloadImpl : Payload {
         }
     }
 
-    private fun deserialize(): Any {
-        return type.converter.deserialize(bytes, type).apply {
+    @Suppress("UNCHECKED_CAST")
+    private fun deserialize(bytes: ByteArray): Any {
+        val converter = type.converter as Converter<Any>
+        val clazz = type.clazz as KClass<Any>
+        return converter.deserialize(bytes, clazz).apply {
             logger.trace {
                 "Deserialized from media type '${type.mediaType}' into " +
                         "${this::class.java} (contentType class=${type.clazz.java})"
@@ -52,21 +62,4 @@ internal class PayloadImpl : Payload {
         }
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Payload
-
-        if (type != other.type) return false
-        if (!bytes.contentEquals(other.bytes)) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = type.hashCode()
-        result = 31 * result + bytes.contentHashCode()
-        return result
-    }
 }

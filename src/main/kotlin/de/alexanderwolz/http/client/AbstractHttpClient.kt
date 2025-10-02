@@ -99,6 +99,7 @@ abstract class AbstractHttpClient<T>(
         }
 
         return Request(method, endpoint, requestHeaders, payload, acceptTypes)
+            .also { logRequest(it) }
     }
 
     protected fun convertRequestBody(payload: Payload): RequestBody? {
@@ -130,7 +131,7 @@ abstract class AbstractHttpClient<T>(
         }
     }
 
-    protected fun logRequest() {
+    protected fun logRequest(request: Request) {
         logger.trace {
             val bodyType = request.body.takeIf { it != Payload.EMPTY }
                 ?.let { "ContentType: ${it.type}->${it.type.clazz.java.name}" } ?: "No request body"
@@ -179,6 +180,8 @@ abstract class AbstractHttpClient<T>(
         }
 
         logger.trace { "Server returned content-type: ${mediaTypes.joinToString()}" }
+        logger.trace { "UTF decoded bytes:\n${bytes?.decodeToString()}" }
+
         val normalized = mediaTypes.first()
         val acceptTypes = request.acceptTypes ?: emptySet()
         val contentType = acceptTypes.find { it.mediaType.startsWith(normalized) }
@@ -201,7 +204,9 @@ abstract class AbstractHttpClient<T>(
     }
 
     private fun createResponsePayload(type: ContentType, bytes: ByteArray?): Payload {
-        bytes?.let { return Payload.create(type, it) }
+        bytes?.let {
+            return Payload.create(type, it)
+        }
         throw NoSuchElementException("Received empty byte array with content type: $type")
     }
 

@@ -2,13 +2,11 @@ package de.alexanderwolz.http.client.model
 
 import com.google.gson.Gson
 import de.alexanderwolz.http.client.model.converter.Converter
-import de.alexanderwolz.http.client.model.type.ContentType
+import kotlin.reflect.KClass
 
 class WrappedProductConverter : Converter<Any> {
 
-    //TODO converter needs a wrapMethod
-
-    override fun serialize(element: Any, type: ContentType): ByteArray {
+    override fun serialize(element: Any, clazz: KClass<Any>): ByteArray {
         if (element is WrappedProduct) {
             return Gson().toJson(element).toByteArray()
         }
@@ -18,12 +16,10 @@ class WrappedProductConverter : Converter<Any> {
         throw IllegalArgumentException()
     }
 
-    override fun deserialize(bytes: ByteArray, type: ContentType): Any {
+    override fun deserialize(bytes: ByteArray, clazz: KClass<Any>): Any {
         //TODO check if it is Wrapped or Product?
         //type always is product here
-
         return Gson().fromJson(bytes.decodeToString(), WrappedProduct::class.java)
-        throw IllegalArgumentException()
     }
 
 }
