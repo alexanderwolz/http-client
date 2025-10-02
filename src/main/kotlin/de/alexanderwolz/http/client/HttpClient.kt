@@ -122,7 +122,7 @@ class HttpClient private constructor(
                 val acceptTypes = request.acceptTypes ?: emptySet()
                 val contentType = acceptTypes.find { it.mediaType.startsWith(normalized) }
                 if (contentType != null) {
-                    logger.trace { "Found content type in specified accept types" }
+                    logger.trace { "Found content type in specified accept types: $contentType (${contentType.clazz.java})" }
                     return Payload(contentType, bytes)
                 } else {
                     logger.warn { "Could not determine content-type from request accept types (${request.acceptTypes?.joinToString()})" }

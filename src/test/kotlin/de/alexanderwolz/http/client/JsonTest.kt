@@ -12,8 +12,8 @@ class JsonTest {
         val tokenString = "{\"access_token\"=\"ey123\",\"token_type\"=\"bearer\",\"expires_in\"=\"3600\"}"
         val token = Gson().fromJson(tokenString, OAuthTokenResponse::class.java)
         assertEquals("ey123", token.accessToken)
-        assertEquals("bearer", token.type)
-        assertEquals(3600, token.expiresIn)
+        assertEquals("bearer", token.tokenType)
+        assertEquals(3600, token.expiresInSeconds)
     }
 
 }

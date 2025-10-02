@@ -2,35 +2,54 @@ package de.alexanderwolz.http.client
 
 import com.google.gson.Gson
 import com.google.gson.JsonElement
+import com.google.gson.JsonParser
 import de.alexanderwolz.commons.util.CertificateUtils
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.model.*
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
+import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.math.BigInteger
 import java.net.URI
 import java.net.UnknownHostException
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 class HttpClientTest {
 
     @TempDir
     private lateinit var tmpDir: File
 
+    private lateinit var mockServer: MockWebServer
+
+    @BeforeEach
+    fun setup() {
+        mockServer = MockWebServer()
+        mockServer.start()
+    }
+
+    @AfterEach
+    fun teardown() {
+        mockServer.shutdown()
+    }
+
     @Test
     fun testSimpleGetWithJson() {
+
+        startSimpleJsonServer()
+
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.GET)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .endpoint(mockServer.url("/endpoint").toUri())
             .accept(BasicContentTypes.APPLICATION_JSON)
             .build()
 
@@ -45,10 +64,13 @@ class HttpClientTest {
 
     @Test
     fun testSimpleGetWithGSON() {
+
+        startSimpleJsonServer()
+
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.GET)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .endpoint(mockServer.url("/endpoint").toUri())
             .accept(BasicContentTypes.GSON)
             .build()
 
@@ -63,6 +85,7 @@ class HttpClientTest {
 
     @Test
     fun testSimpleGetWithUnknownHostException() {
+
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.GET)
@@ -81,10 +104,13 @@ class HttpClientTest {
 
     @Test
     fun testSimpleGetWithoutAcceptTypeButReturnsBasicType() {
+
+        startSimpleJsonServer()
+
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.GET)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .endpoint(mockServer.url("/endpoint").toUri())
             .build()
 
         val response = httpClient.execute()
@@ -100,13 +126,15 @@ class HttpClientTest {
     @Test
     fun testJsonElementPost() {
 
+        startSimpleJsonServer()
+
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
         val payload = Payload(BasicContentTypes.APPLICATION_JSON, jsonString)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .endpoint(mockServer.url("/endpoint").toUri())
             .accept(BasicContentTypes.APPLICATION_JSON)
             .body(payload)
             .build()
@@ -123,6 +151,8 @@ class HttpClientTest {
     @Test
     fun testGsonElementPost() {
 
+        startSimpleJsonServer()
+
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
         val jsonElement = Gson().toJsonTree(jsonString)
         val payload = Payload(BasicContentTypes.GSON, jsonElement)
@@ -130,7 +160,7 @@ class HttpClientTest {
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .endpoint(mockServer.url("/endpoint").toUri())
             .accept(BasicContentTypes.GSON)
             .body(payload)
             .build()
@@ -147,13 +177,15 @@ class HttpClientTest {
     @Test
     fun testJsonBinaryPost() {
 
+        startSimpleJsonServer()
+
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
         val payload = Payload(BasicContentTypes.APPLICATION_JSON, jsonString.toByteArray())
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .endpoint(mockServer.url("/endpoint").toUri())
             .accept(BasicContentTypes.APPLICATION_JSON)
             .body(payload)
             .build()
@@ -170,13 +202,15 @@ class HttpClientTest {
     @Test
     fun testGsonBinaryPost() {
 
+        startSimpleJsonServer()
+
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
         val payload = Payload(BasicContentTypes.GSON, jsonString.toByteArray())
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .endpoint(mockServer.url("/endpoint").toUri())
             .accept(BasicContentTypes.GSON)
             .body(payload)
             .build()
@@ -192,6 +226,8 @@ class HttpClientTest {
 
     @Test
     fun testFormPost() {
+
+        startSimpleJsonServer()
 
         val form = Form(mapOf("key1" to "value1"))
         val payload = Payload(BasicContentTypes.FORM_URL_ENCODED, form)
@@ -213,6 +249,9 @@ class HttpClientTest {
 
     @Test
     fun testGetWithCustomType() {
+
+        startSimpleJsonServer()
+
         val type = CustomContentTypes.CUSTOM_NAME
         val content = CustomName("MyName")
         val payload = Payload(type, content)
@@ -235,6 +274,8 @@ class HttpClientTest {
     @Test
     fun testCertificateReferences() {
 
+        startSimpleJsonServer()
+
         val keyFile = File(tmpDir, "key.pem")
         val certFile = File(tmpDir, "cert.pem")
         CertificateUtils.writeNewCertPair(keyFile, certFile, "CN=TEST")
@@ -246,14 +287,17 @@ class HttpClientTest {
             .method(HttpMethod.GET)
             .certificateLookupFolder(File("/src/test/resources"))
             .certificates(references)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .endpoint(mockServer.url("/endpoint").toUri())
             .accept(BasicContentTypes.APPLICATION_JSON)
             .build()
         val response = httpClient.execute()
+        assertNotNull(response)
     }
 
     @Test
     fun testCertificateBundle() {
+
+        startSimpleJsonServer()
 
         val certificatePair = CertificateUtils.generateNewCertificatePair("CN=Test", BigInteger.ZERO)
         val bundle = CertificateBundle(certificatePair.first, listOf(certificatePair.second), emptyList())
@@ -264,10 +308,88 @@ class HttpClientTest {
             .method(HttpMethod.GET)
             .certificateLookupFolder(File("/src/test/resources"))
             .certificates(bundle)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .endpoint(mockServer.url("/endpoint").toUri())
             .accept(BasicContentTypes.APPLICATION_JSON)
             .build()
         val response = httpClient.execute()
+        assertNotNull(response)
+    }
+
+    @Test
+    fun testAccessTokenJsonString() {
+
+        val jwt = startJwtServer()
+
+        val client = HttpClient.Builder()
+            .method(HttpMethod.GET)
+            .endpoint(mockServer.url("/token").toUri())
+            .accept(BasicContentTypes.APPLICATION_JSON)
+            .build()
+
+        val response = client.execute()
+        assertNotNull(response)
+        assertEquals(200, response.code)
+        assertNotNull(response.body)
+        assertEquals(BasicContentTypes.APPLICATION_JSON, response.body.type)
+        assertEquals(String::class, response.body.element::class)
+        assertEquals(jwt, response.body.element)
+    }
+
+    @Test
+    fun testAccessTokenWithOauthType() {
+
+        val jwt = startJwtServer()
+        val jwtJsonElement = JsonParser.parseString(jwt).asJsonObject
+
+        val client = HttpClient.Builder()
+            .method(HttpMethod.GET)
+            .endpoint(mockServer.url("/endpoint").toUri())
+            .accept(BasicContentTypes.OAUTH_JSON)
+            .build()
+
+        val response = client.execute()
+        assertNotNull(response)
+        assertEquals(200, response.code)
+        assertNotNull(response.body)
+        assertEquals(BasicContentTypes.OAUTH_JSON, response.body.type)
+        assertEquals(OAuthTokenResponse::class, response.body.element::class)
+        val tokenResponse = response.body.element as OAuthTokenResponse
+        assertEquals(jwtJsonElement.get("access_token").asString, tokenResponse.accessToken)
+        assertEquals(jwtJsonElement.get("token_type").asString, tokenResponse.tokenType)
+        assertEquals(jwtJsonElement.get("expires_in").asInt, tokenResponse.expiresInSeconds)
+        val token = tokenResponse.toAccessToken()
+        assertNotNull(token)
+        assertFalse { token.isExpired() }
+    }
+
+    private fun startJwtServer(): String {
+
+        val oauthJson = JwtHelper().createOauthResponse(
+            JwtHelper.TEST_SECRET,
+            JwtHelper.TEST_ISSUER,
+            emptyMap(),
+            60,
+            JwtHelper.TEST_SCOPE
+        )
+        val mockResponse = MockResponse().apply {
+            setResponseCode(200)
+            setBody(oauthJson)
+            addHeader("Content-Type", "application/json")
+        }
+        mockServer.enqueue(mockResponse)
+        return oauthJson
+    }
+
+    private fun startSimpleJsonServer(): String {
+
+        val json = "{\"id\":\"1\",\"product\":\"apple\"}"
+        val mockResponse = MockResponse().apply {
+            setResponseCode(200)
+            setBody(json)
+            addHeader("Content-Type", "application/json")
+        }
+        mockServer.enqueue(mockResponse)
+        return json
     }
 
 }
