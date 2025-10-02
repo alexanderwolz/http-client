@@ -13,6 +13,7 @@ enum class BasicContentTypes(
     override val clazz: KClass<*>,
     override val converter: Converter<*>
 ) : ContentType {
+    EMPTY("emptybody", String::class, BasicConverters.STRING),
     TEXT_PLAIN("text/plain", String::class, BasicConverters.STRING),
     TEXT_XML("text/xml", String::class, BasicConverters.STRING),
     TEXT_HTML("text/html", String::class, BasicConverters.STRING),

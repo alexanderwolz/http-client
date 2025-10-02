@@ -9,6 +9,7 @@ import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.model.*
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
+import de.alexanderwolz.http.client.model.payload.PayloadImpl
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import okhttp3.mockwebserver.MockResponse
@@ -129,7 +130,7 @@ class HttpClientTest {
         startSimpleJsonServer()
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
-        val payload = Payload(BasicContentTypes.APPLICATION_JSON, jsonString)
+        val payload = PayloadImpl(BasicContentTypes.APPLICATION_JSON, jsonString)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -140,9 +141,8 @@ class HttpClientTest {
             .build()
         val response = httpClient.execute()
         if (response.isOK) {
-            response.body?.let { payload ->
-                assertIs<String>(payload.element)
-            } ?: throw Exception("Body should not be empty")
+            assertEquals(BasicContentTypes.APPLICATION_JSON, response.body.type)
+            assertIs<String>(response.body.element)
         } else {
             throw Exception("Response should be OK, but was ${response.code}")
         }
@@ -155,7 +155,7 @@ class HttpClientTest {
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
         val jsonElement = Gson().toJsonTree(jsonString)
-        val payload = Payload(BasicContentTypes.GSON, jsonElement)
+        val payload = PayloadImpl(BasicContentTypes.GSON, jsonElement)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -166,9 +166,8 @@ class HttpClientTest {
             .build()
         val response = httpClient.execute()
         if (response.isOK) {
-            response.body?.let { payload ->
-                assertIs<JsonElement>(payload.element)
-            } ?: throw Exception("Body should not be empty")
+            assertEquals(BasicContentTypes.GSON, response.body.type)
+            assertIs<JsonElement>(response.body.element)
         } else {
             throw Exception("Response should be OK, but was ${response.code}")
         }
@@ -180,7 +179,7 @@ class HttpClientTest {
         startSimpleJsonServer()
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
-        val payload = Payload(BasicContentTypes.APPLICATION_JSON, jsonString.toByteArray())
+        val payload = PayloadImpl(BasicContentTypes.APPLICATION_JSON, jsonString.toByteArray())
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -191,9 +190,8 @@ class HttpClientTest {
             .build()
         val response = httpClient.execute()
         if (response.isOK) {
-            response.body?.let { payload ->
-                assertIs<String>(payload.element)
-            } ?: throw Exception("Body should not be empty")
+            assertEquals(BasicContentTypes.APPLICATION_JSON, response.body.type)
+            assertIs<String>(response.body.element)
         } else {
             throw Exception("Response should be OK, but was ${response.code}")
         }
@@ -205,7 +203,7 @@ class HttpClientTest {
         startSimpleJsonServer()
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
-        val payload = Payload(BasicContentTypes.GSON, jsonString.toByteArray())
+        val payload = PayloadImpl(BasicContentTypes.GSON, jsonString.toByteArray())
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -216,9 +214,8 @@ class HttpClientTest {
             .build()
         val response = httpClient.execute()
         if (response.isOK) {
-            response.body?.let { payload ->
-                assertIs<JsonElement>(payload.element)
-            } ?: throw Exception("Body should not be empty")
+            assertEquals(BasicContentTypes.GSON, response.body.type)
+            assertIs<JsonElement>(response.body.element)
         } else {
             throw Exception("Response should be OK, but was ${response.code}")
         }
@@ -230,7 +227,7 @@ class HttpClientTest {
         startSimpleJsonServer()
 
         val form = Form(mapOf("key1" to "value1"))
-        val payload = Payload(BasicContentTypes.FORM_URL_ENCODED, form)
+        val payload = PayloadImpl(BasicContentTypes.FORM_URL_ENCODED, form)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -242,7 +239,6 @@ class HttpClientTest {
         val response = httpClient.execute()
         assertEquals(415, response.code)
         assertEquals("Unsupported Media Type", response.message)
-        assertNotNull(response.body)
         assertEquals("application/json", response.body.type.mediaType)
         assertEquals("application/x-www-form-urlencoded", response.request.body?.type?.mediaType)
     }
@@ -254,7 +250,7 @@ class HttpClientTest {
 
         val type = CustomContentTypes.CUSTOM_NAME
         val content = CustomName("MyName")
-        val payload = Payload(type, content)
+        val payload = PayloadImpl(type, content)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -266,7 +262,6 @@ class HttpClientTest {
         val response = httpClient.execute()
         assertEquals(415, response.code)
         assertEquals("Unsupported Media Type", response.message)
-        assertNotNull(response.body)
         assertEquals("application/json", response.body.type.mediaType)
         assertEquals("application/customName", response.request.body?.type?.mediaType)
     }
