@@ -2,23 +2,15 @@ package de.alexanderwolz.http.client.model
 
 import com.google.gson.Gson
 import de.alexanderwolz.http.client.model.converter.ElementConverter
-import kotlin.reflect.KClass
+import de.alexanderwolz.http.client.model.type.ContentType
 
 class WrappedProductConverter : ElementConverter<Any> {
 
-    override fun serialize(element: Any, clazz: KClass<Any>): ByteArray {
-        if (element is WrappedProduct) {
-            return Gson().toJson(element).toByteArray()
-        }
-        if (element is Product) {
-            return Gson().toJson(WrappedProduct(element)).toByteArray()
-        }
-        throw IllegalArgumentException()
+    override fun serialize(type: ContentType, element: Any): ByteArray {
+        return Gson().toJson(element).toByteArray()
     }
 
-    override fun deserialize(bytes: ByteArray, clazz: KClass<Any>): Any {
-        //TODO check if it is Wrapped or Product?
-        //type always is product here
+    override fun deserialize(type: ContentType, bytes: ByteArray): Any {
         return Gson().fromJson(bytes.decodeToString(), WrappedProduct::class.java)
     }
 

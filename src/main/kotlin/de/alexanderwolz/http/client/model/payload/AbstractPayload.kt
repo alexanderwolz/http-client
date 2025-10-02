@@ -4,7 +4,6 @@ import de.alexanderwolz.commons.log.Logger
 import de.alexanderwolz.http.client.model.converter.ElementConverter
 import de.alexanderwolz.http.client.model.converter.ParentConverter
 import de.alexanderwolz.http.client.model.type.ContentType
-import kotlin.reflect.KClass
 
 @Suppress("UNCHECKED_CAST")
 abstract class AbstractPayload : Payload {
@@ -29,11 +28,11 @@ abstract class AbstractPayload : Payload {
             val converter = type.parentConverter as ParentConverter<Any, Any>
             val parent = converter.decode(bytes)
             this.element = converter.unwrap(parent)
-            this.bytes = serialize(this.element)
+            this.bytes = serialize(type, this.element)
             this.parentBytes = bytes
         } else {
             this.bytes = bytes
-            this.element = deserialize(bytes)
+            this.element = deserialize(type, bytes)
         }
         typeCheck()
     }
@@ -44,19 +43,19 @@ abstract class AbstractPayload : Payload {
             val converter = type.parentConverter as ParentConverter<Any, Any>
             if (element::class == converter.parentClass) {
                 logger.debug { "Using parent converter: ${type.parentConverter}" }
-                this.parentBytes = serialize(element)
+                this.parentBytes = serialize(type, element)
                 val child = converter.unwrap(element)
                 this.element = child
-                this.bytes = serialize(child)
+                this.bytes = serialize(type, child)
             } else if (element::class == type.clazz) {
                 this.element = element
-                this.bytes = serialize(element)
+                this.bytes = serialize(type, element)
             } else {
                 throw IllegalStateException("Unsupported element ${element.javaClass}")
             }
         } else {
             this.element = element
-            this.bytes = serialize(element)
+            this.bytes = serialize(type, element)
         }
         typeCheck()
     }
@@ -68,10 +67,9 @@ abstract class AbstractPayload : Payload {
     }
 
 
-    private fun serialize(element: Any): ByteArray {
+    private fun serialize(type: ContentType, element: Any): ByteArray {
         val converter = type.elementConverter as ElementConverter<Any>
-        val clazz = type.clazz as KClass<Any>
-        return converter.serialize(element, clazz).apply {
+        return converter.serialize(type, element).apply {
             logger.trace {
                 "Serialized from element ${element::class.java} into ByteArray " +
                         "(media type '${type.mediaType}', contentType class=${type.clazz.java})"
@@ -79,10 +77,9 @@ abstract class AbstractPayload : Payload {
         }
     }
 
-    private fun deserialize(bytes: ByteArray): Any {
+    private fun deserialize(type: ContentType, bytes: ByteArray): Any {
         val converter = type.elementConverter as ElementConverter<Any>
-        val clazz = type.clazz as KClass<Any>
-        return converter.deserialize(bytes, clazz).apply {
+        return converter.deserialize(type, bytes).apply {
             logger.trace {
                 "Deserialized from media type '${type.mediaType}' into " +
                         "${this::class.java} (contentType class=${type.clazz.java})"

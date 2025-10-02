@@ -5,66 +5,66 @@ import com.google.gson.JsonElement
 import de.alexanderwolz.http.client.model.Form
 import de.alexanderwolz.http.client.model.token.OAuthErrorResponse
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
-import kotlin.reflect.KClass
+import de.alexanderwolz.http.client.model.type.ContentType
 
 object BasicConverters {
 
     val STRING = object : ElementConverter<String> {
-        override fun serialize(element: String, clazz: KClass<String>): ByteArray {
+        override fun serialize(type: ContentType, element: String): ByteArray {
             return element.toByteArray()
         }
 
-        override fun deserialize(bytes: ByteArray, clazz: KClass<String>): String {
+        override fun deserialize(type: ContentType, bytes: ByteArray): String {
             return bytes.decodeToString()
         }
     }
 
     val BYTE_ARRAY = object : ElementConverter<ByteArray> {
-        override fun serialize(element: ByteArray, clazz: KClass<ByteArray>): ByteArray {
+        override fun serialize(type: ContentType, element: ByteArray): ByteArray {
             return element
         }
 
-        override fun deserialize(bytes: ByteArray, clazz: KClass<ByteArray>): ByteArray {
+        override fun deserialize(type: ContentType, bytes: ByteArray): ByteArray {
             return bytes
         }
     }
 
     val JSON_ELEMENT = object : ElementConverter<JsonElement> {
-        override fun serialize(element: JsonElement, clazz: KClass<JsonElement>): ByteArray {
+        override fun serialize(type: ContentType, element: JsonElement): ByteArray {
             return Gson().toJson(element).toByteArray()
         }
 
-        override fun deserialize(bytes: ByteArray, clazz: KClass<JsonElement>): JsonElement {
+        override fun deserialize(type: ContentType, bytes: ByteArray): JsonElement {
             return Gson().toJsonTree(bytes.decodeToString())
         }
     }
 
     val OAUTH_TOKEN = object : ElementConverter<OAuthTokenResponse> {
-        override fun serialize(element: OAuthTokenResponse, clazz: KClass<OAuthTokenResponse>): ByteArray {
+        override fun serialize(type: ContentType, element: OAuthTokenResponse): ByteArray {
             return Gson().toJson(element).toByteArray()
         }
 
-        override fun deserialize(bytes: ByteArray, clazz: KClass<OAuthTokenResponse>): OAuthTokenResponse {
+        override fun deserialize(type: ContentType, bytes: ByteArray): OAuthTokenResponse {
             return Gson().fromJson(bytes.decodeToString(), OAuthTokenResponse::class.java)
         }
     }
 
     val OAUTH_TOKEN_ERROR = object : ElementConverter<OAuthErrorResponse> {
-        override fun serialize(element: OAuthErrorResponse, clazz: KClass<OAuthErrorResponse>): ByteArray {
+        override fun serialize(type: ContentType, element: OAuthErrorResponse): ByteArray {
             return Gson().toJson(element).toByteArray()
         }
 
-        override fun deserialize(bytes: ByteArray, clazz: KClass<OAuthErrorResponse>): OAuthErrorResponse {
+        override fun deserialize(type: ContentType, bytes: ByteArray): OAuthErrorResponse {
             return Gson().fromJson(bytes.decodeToString(), OAuthErrorResponse::class.java)
         }
     }
 
     val FORM = object : ElementConverter<Form> {
-        override fun serialize(element: Form, clazz: KClass<Form>): ByteArray {
+        override fun serialize(type: ContentType, element: Form): ByteArray {
             return element.encodeToString().toByteArray()
         }
 
-        override fun deserialize(bytes: ByteArray, clazz: KClass<Form>): Form {
+        override fun deserialize(type: ContentType, bytes: ByteArray): Form {
             return Form(bytes.decodeToString())
         }
     }

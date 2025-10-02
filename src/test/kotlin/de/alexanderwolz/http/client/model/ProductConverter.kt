@@ -2,15 +2,15 @@ package de.alexanderwolz.http.client.model
 
 import com.google.gson.Gson
 import de.alexanderwolz.http.client.model.converter.ElementConverter
-import kotlin.reflect.KClass
+import de.alexanderwolz.http.client.model.type.ContentType
 
 class ProductConverter : ElementConverter<Product> {
 
-    override fun serialize(element: Product, clazz: KClass<Product>): ByteArray {
+    override fun serialize(type: ContentType, element: Product): ByteArray {
         return Gson().toJson(element).toByteArray()
     }
 
-    override fun deserialize(bytes: ByteArray, clazz: KClass<Product>): Product {
+    override fun deserialize(type: ContentType, bytes: ByteArray): Product {
         val decoded = bytes.decodeToString()
         return Gson().fromJson(decoded, Product::class.java)
     }
