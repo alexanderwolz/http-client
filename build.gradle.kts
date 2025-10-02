@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "de.alexanderwolz"
-version = "1.3.1"
+version = "1.3.2"
 
 repositories {
     mavenCentral()
@@ -33,6 +33,8 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation("org.slf4j:slf4j-simple:2.0.17")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.auth0:java-jwt:4.4.0")
 }
 
 tasks.test {
