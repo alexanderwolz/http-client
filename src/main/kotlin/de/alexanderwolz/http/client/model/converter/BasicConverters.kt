@@ -19,6 +19,16 @@ object BasicConverters {
         }
     }
 
+    val BYTE_ARRAY = object : Converter<ByteArray> {
+        override fun serialize(element: ByteArray, type: ContentType): ByteArray {
+            return element
+        }
+
+        override fun deserialize(bytes: ByteArray, type: ContentType): ByteArray {
+            return bytes
+        }
+    }
+
     val JSON_ELEMENT = object : Converter<JsonElement> {
         override fun serialize(element: JsonElement, type: ContentType): ByteArray {
             return Gson().toJson(element).toByteArray()

@@ -6,19 +6,22 @@ import de.alexanderwolz.http.client.model.converter.BasicConverters
 import de.alexanderwolz.http.client.model.converter.Converter
 import de.alexanderwolz.http.client.model.token.OAuthErrorResponse
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
+import de.alexanderwolz.http.client.model.wrapper.Wrapper
 import kotlin.reflect.KClass
 
 enum class BasicContentTypes(
     override val mediaType: String,
     override val clazz: KClass<*>,
-    override val converter: Converter<*>
+    override val converter: Converter<*>,
+    override val wrapper: Wrapper<*, *>? = null
 ) : ContentType {
-    EMPTY("emptybody", String::class, BasicConverters.STRING),
+    EMPTY("EMPTY_BODY", String::class, BasicConverters.STRING),
     TEXT_PLAIN("text/plain", String::class, BasicConverters.STRING),
     TEXT_XML("text/xml", String::class, BasicConverters.STRING),
     TEXT_HTML("text/html", String::class, BasicConverters.STRING),
     APPLICATION_XML("application/xml", String::class, BasicConverters.STRING),
     APPLICATION_JSON("application/json", String::class, BasicConverters.STRING),
+    APPLICATION_OCTET_STREAM("application/octet-stream", ByteArray::class, BasicConverters.BYTE_ARRAY),
     FORM_URL_ENCODED("application/x-www-form-urlencoded", Form::class, BasicConverters.FORM),
     GSON("application/json", JsonElement::class, BasicConverters.JSON_ELEMENT),
     OAUTH_TOKEN("application/json", OAuthTokenResponse::class, BasicConverters.OAUTH_TOKEN),

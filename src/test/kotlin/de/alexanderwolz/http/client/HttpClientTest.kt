@@ -70,10 +70,10 @@ class HttpClientTest {
         assertNotNull(httpClient)
         assertIs<OkHttpClientWrapper>(httpClient)
         assertNotNull(httpClient.request)
-        assertTrue { httpClient.request.headers.contains("user")}
-        assertTrue { httpClient.request.headers.contains("server")}
-        assertTrue { httpClient.request.headers.contains("authorization")}
-        assertTrue { httpClient.request.headers.contains("user-agent")}
+        assertTrue { httpClient.request.headers.contains("user") }
+        assertTrue { httpClient.request.headers.contains("server") }
+        assertTrue { httpClient.request.headers.contains("authorization") }
+        assertTrue { httpClient.request.headers.contains("user-agent") }
         assertEquals(HttpMethod.DELETE, httpClient.request.httpMethod)
         assertEquals(URI.create("/endpoint"), httpClient.request.endpoint)
     }
@@ -270,15 +270,13 @@ class HttpClientTest {
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .endpoint(mockServer.url("/endpoint").toUri())
             .accept(BasicContentTypes.APPLICATION_JSON)
             .body(payload)
             .build()
         val response = httpClient.execute()
-        assertEquals(415, response.code)
-        assertEquals("Unsupported Media Type", response.message)
         assertEquals("application/json", response.body.type.mediaType)
-        assertEquals("application/x-www-form-urlencoded", response.request.body?.type?.mediaType)
+        assertEquals("application/x-www-form-urlencoded", response.request.body.type.mediaType)
     }
 
     @Test
@@ -286,22 +284,46 @@ class HttpClientTest {
 
         startSimpleJsonServer()
 
-        val type = CustomContentTypes.CUSTOM_NAME
-        val content = CustomName("MyName")
+        val type = CustomContentTypes.PRODUCT
+        val content = Product("2", "Bananas")
         val payload = Payload.create(type, content)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
-            .endpoint(URI.create("https://api.predic8.de/shop/v2/products"))
+            .endpoint(mockServer.url("/endpoint").toUri())
             .accept(BasicContentTypes.APPLICATION_JSON)
             .body(payload)
             .build()
         val response = httpClient.execute()
-        assertEquals(415, response.code)
-        assertEquals("Unsupported Media Type", response.message)
         assertEquals("application/json", response.body.type.mediaType)
-        assertEquals("application/customName", response.request.body?.type?.mediaType)
+        assertEquals("application/product", response.request.body.type.mediaType)
+    }
+
+    @Test
+    fun testGetWithWrappedPayload() {
+
+        // use case: maybe we want to work with an element, but it must be wrapped into something
+        // else during transfer to and from server.
+        // here: we want to use product, but server only accepts WrappedProduct
+        // typical use case: JAXB elements with ObjectFactory -> work with element
+
+        startWrappedJsonServer()
+
+        val product = Product("666", "Satanic Sandman")
+        val payload = Payload.create(CustomContentTypes.WRAPPED_PRODUCT, product)
+        assertNotNull(payload)
+
+        val client = HttpClient.Builder()
+            .method(HttpMethod.GET)
+            .endpoint(mockServer.url("/endpoint").toUri())
+            .accept(CustomContentTypes.WRAPPED_PRODUCT)
+            .build()
+
+        val response = client.execute()
+        assertNotNull(response)
+        assertEquals(product, response.body.element)
+
     }
 
     @Test
@@ -419,6 +441,19 @@ class HttpClientTest {
         val mockResponse = MockResponse().apply {
             setResponseCode(200)
             setBody(json)
+            addHeader("Content-Type", "application/json")
+        }
+        mockServer.enqueue(mockResponse)
+        return json
+    }
+
+    private fun startWrappedJsonServer(): String {
+
+        val json = "{\"id\":\"1\",\"name\":\"apple\"}"
+        val wrapped = "{\"element\": \"$json\"}"
+        val mockResponse = MockResponse().apply {
+            setResponseCode(200)
+            setBody(wrapped)
             addHeader("Content-Type", "application/json")
         }
         mockServer.enqueue(mockResponse)

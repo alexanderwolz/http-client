@@ -32,15 +32,6 @@ internal class PayloadImpl : Payload {
         }
     }
 
-    private fun deserialize(): Any {
-        return type.converter.deserialize(bytes, type).apply {
-            logger.trace {
-                "Deserialized from media type '${type.mediaType}' into " +
-                        "${this::class.java} (contentType class=${type.clazz.java})"
-            }
-        }
-    }
-
     @Suppress("UNCHECKED_CAST")
     private fun serialize(): ByteArray {
         val converter = type.converter as Converter<Any>
@@ -48,6 +39,15 @@ internal class PayloadImpl : Payload {
             logger.trace {
                 "Serialized from element ${element::class.java} into ByteArray " +
                         "(media type '${type.mediaType}', contentType class=${type.clazz.java})"
+            }
+        }
+    }
+
+    private fun deserialize(): Any {
+        return type.converter.deserialize(bytes, type).apply {
+            logger.trace {
+                "Deserialized from media type '${type.mediaType}' into " +
+                        "${this::class.java} (contentType class=${type.clazz.java})"
             }
         }
     }
