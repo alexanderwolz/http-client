@@ -4,6 +4,9 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import de.alexanderwolz.commons.util.CertificateUtils
+import de.alexanderwolz.http.client.Constants.CONTENT_PRODUCT_JSON
+import de.alexanderwolz.http.client.Constants.CONTENT_WRAPPED_PRODUCT_JSON
+import de.alexanderwolz.http.client.Constants.MEDIA_TYPE_PRODUCT
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.instance.OkHttpClientWrapper
@@ -313,20 +316,24 @@ class HttpClientTest {
 
         startWrappedProductServer()
 
+        //we send product to server, it returns wrappedProduct, but we use wrapping
         val product = Product("666", "Satanic Sandman")
-        val wrapped = WrappedProduct(product)
-        val wrappedProductPayload = Payload.create(CustomContentTypes.WRAPPED_PRODUCT, wrapped)
-        assertNotNull(wrappedProductPayload)
+        val payload = Payload.create(CustomContentTypes.PRODUCT, product)
+        assertNotNull(payload)
 
         val client = HttpClient.Builder()
-            .method(HttpMethod.GET)
+            .method(HttpMethod.POST)
             .endpoint(mockServer.url("/endpoint").toUri())
             .accept(CustomContentTypes.WRAPPED_PRODUCT)
+            .body(payload)
             .build()
 
         val response = client.execute()
         assertNotNull(response)
-        assertEquals(product, response.body.element)
+
+        val expectedPayload = Gson().fromJson(CONTENT_PRODUCT_JSON, Product::class.java)
+
+        assertEquals(expectedPayload, response.body.element)
 
     }
 
@@ -443,39 +450,32 @@ class HttpClientTest {
 
         val mockResponse = MockResponse().apply {
             setResponseCode(200)
-            setBody(PRODUCT_APPLE_JSON)
+            setBody(CONTENT_PRODUCT_JSON)
             addHeader("Content-Type", "application/json")
         }
         mockServer.enqueue(mockResponse)
-        return PRODUCT_APPLE_JSON
+        return CONTENT_PRODUCT_JSON
     }
 
     private fun startProductServer(): String {
 
         val mockResponse = MockResponse().apply {
             setResponseCode(200)
-            setBody(PRODUCT_APPLE_JSON)
+            setBody(CONTENT_PRODUCT_JSON)
             addHeader("Content-Type", CustomContentTypes.PRODUCT.mediaType)
         }
         mockServer.enqueue(mockResponse)
-        return PRODUCT_APPLE_JSON
+        return CONTENT_PRODUCT_JSON
     }
 
     private fun startWrappedProductServer(): String {
-        val wrapped = "{\"element\":${PRODUCT_APPLE_JSON}}"
         val mockResponse = MockResponse().apply {
             setResponseCode(200)
-            setBody(wrapped)
+            setBody(CONTENT_WRAPPED_PRODUCT_JSON)
             addHeader("Content-Type", CustomContentTypes.PRODUCT.mediaType)
         }
         mockServer.enqueue(mockResponse)
-        return wrapped
+        return CONTENT_WRAPPED_PRODUCT_JSON
     }
-
-    companion object {
-        private const val PRODUCT_APPLE_JSON = "{\"id\":\"1\",\"name\":\"apple\"}"
-    }
-
-
 
 }

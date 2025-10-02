@@ -176,7 +176,7 @@ abstract class AbstractHttpClient<T>(
                 return Payload.EMPTY
             }
             logger.trace { "Server did not return a content-type (but content-length=${bytes.size}" }
-            return Payload.create(BasicContentTypes.APPLICATION_OCTET_STREAM, bytes)
+            return createResponsePayload(BasicContentTypes.APPLICATION_OCTET_STREAM, bytes)
         }
 
         logger.trace { "Server returned content-type: ${mediaTypes.joinToString()}" }
@@ -203,9 +203,10 @@ abstract class AbstractHttpClient<T>(
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun createResponsePayload(type: ContentType, bytes: ByteArray?): Payload {
         bytes?.let {
-            return Payload.create(type, it)
+            return Payload.create(type, bytes)
         }
         throw NoSuchElementException("Received empty byte array with content type: $type")
     }

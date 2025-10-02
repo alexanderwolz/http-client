@@ -9,7 +9,7 @@ import kotlin.reflect.KClass
 
 object BasicConverters {
 
-    val STRING = object : Converter<String> {
+    val STRING = object : ElementConverter<String> {
         override fun serialize(element: String, clazz: KClass<String>): ByteArray {
             return element.toByteArray()
         }
@@ -19,7 +19,7 @@ object BasicConverters {
         }
     }
 
-    val BYTE_ARRAY = object : Converter<ByteArray> {
+    val BYTE_ARRAY = object : ElementConverter<ByteArray> {
         override fun serialize(element: ByteArray, clazz: KClass<ByteArray>): ByteArray {
             return element
         }
@@ -29,7 +29,7 @@ object BasicConverters {
         }
     }
 
-    val JSON_ELEMENT = object : Converter<JsonElement> {
+    val JSON_ELEMENT = object : ElementConverter<JsonElement> {
         override fun serialize(element: JsonElement, clazz: KClass<JsonElement>): ByteArray {
             return Gson().toJson(element).toByteArray()
         }
@@ -39,7 +39,7 @@ object BasicConverters {
         }
     }
 
-    val OAUTH_TOKEN = object : Converter<OAuthTokenResponse> {
+    val OAUTH_TOKEN = object : ElementConverter<OAuthTokenResponse> {
         override fun serialize(element: OAuthTokenResponse, clazz: KClass<OAuthTokenResponse>): ByteArray {
             return Gson().toJson(element).toByteArray()
         }
@@ -49,7 +49,7 @@ object BasicConverters {
         }
     }
 
-    val OAUTH_TOKEN_ERROR = object : Converter<OAuthErrorResponse> {
+    val OAUTH_TOKEN_ERROR = object : ElementConverter<OAuthErrorResponse> {
         override fun serialize(element: OAuthErrorResponse, clazz: KClass<OAuthErrorResponse>): ByteArray {
             return Gson().toJson(element).toByteArray()
         }
@@ -59,7 +59,7 @@ object BasicConverters {
         }
     }
 
-    val FORM = object : Converter<Form> {
+    val FORM = object : ElementConverter<Form> {
         override fun serialize(element: Form, clazz: KClass<Form>): ByteArray {
             return element.encodeToString().toByteArray()
         }

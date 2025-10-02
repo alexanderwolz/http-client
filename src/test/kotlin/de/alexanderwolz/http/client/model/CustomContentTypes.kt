@@ -1,35 +1,36 @@
 package de.alexanderwolz.http.client.model
 
-import de.alexanderwolz.http.client.model.converter.Converter
+import com.google.gson.Gson
+import de.alexanderwolz.http.client.Constants.MEDIA_TYPE_PRODUCT
+import de.alexanderwolz.http.client.model.converter.ElementConverter
+import de.alexanderwolz.http.client.model.converter.ParentConverter
 import de.alexanderwolz.http.client.model.type.ContentType
-import de.alexanderwolz.http.client.model.wrapper.Wrapper
 import kotlin.reflect.KClass
 
-const val MEDIA_TYPE_PRODUCT = "application/product"
-
 enum class CustomContentTypes(
-    override val mediaType: String, override val clazz: KClass<*>,
-    override val converter: Converter<*>,
-    override val wrapper: Wrapper<*, *>? = null
+    override val mediaType: String,
+    override val clazz: KClass<*>,
+    override val elementConverter: ElementConverter<*>,
+    override val parentConverter: ParentConverter<*, *>? = null
 ) : ContentType {
-
 
     PRODUCT(MEDIA_TYPE_PRODUCT, Product::class, ProductConverter()),
 
     WRAPPED_PRODUCT(
-        MEDIA_TYPE_PRODUCT,
-        Product::class,
+        MEDIA_TYPE_PRODUCT, Product::class,
         WrappedProductConverter(),
-        object : Wrapper<Product, WrappedProduct> {
+        object : ParentConverter<WrappedProduct, Product> {
 
-            override fun wrap(element: Product, clazz: KClass<Product>): WrappedProduct {
-                val parent = WrappedProduct(element)
-                return parent
+            override val parentClass = WrappedProduct::class
+
+            override fun decode(bytes: ByteArray): WrappedProduct {
+                return Gson().fromJson(bytes.decodeToString(), parentClass.java)
             }
 
-            override fun unwrap(parent: WrappedProduct, clazz: KClass<Product>): Product {
+            override fun unwrap(parent: WrappedProduct): Product {
                 return parent.element
             }
 
-        });
+        }
+    );
 }

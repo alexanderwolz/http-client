@@ -1,10 +1,10 @@
 package de.alexanderwolz.http.client.model
 
 import com.google.gson.Gson
-import de.alexanderwolz.http.client.model.converter.Converter
+import de.alexanderwolz.http.client.model.converter.ElementConverter
 import kotlin.reflect.KClass
 
-class WrappedProductConverter : Converter<Any> {
+class WrappedProductConverter : ElementConverter<Any> {
 
     override fun serialize(element: Any, clazz: KClass<Any>): ByteArray {
         if (element is WrappedProduct) {

@@ -3,17 +3,17 @@ package de.alexanderwolz.http.client.model.type
 import com.google.gson.JsonElement
 import de.alexanderwolz.http.client.model.Form
 import de.alexanderwolz.http.client.model.converter.BasicConverters
-import de.alexanderwolz.http.client.model.converter.Converter
+import de.alexanderwolz.http.client.model.converter.ElementConverter
+import de.alexanderwolz.http.client.model.converter.ParentConverter
 import de.alexanderwolz.http.client.model.token.OAuthErrorResponse
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
-import de.alexanderwolz.http.client.model.wrapper.Wrapper
 import kotlin.reflect.KClass
 
 enum class BasicContentTypes(
     override val mediaType: String,
     override val clazz: KClass<*>,
-    override val converter: Converter<*>,
-    override val wrapper: Wrapper<*, *>? = null
+    override val elementConverter: ElementConverter<*>,
+    override val parentConverter: ParentConverter<*, *>? = null
 ) : ContentType {
     EMPTY("EMPTY_BODY", String::class, BasicConverters.STRING),
     TEXT_PLAIN("text/plain", String::class, BasicConverters.STRING),
