@@ -75,7 +75,7 @@ interface HttpClient {
 
         fun headers(vararg pairs: Pair<String, Set<String>>) = apply {
             pairs.forEach {
-                this.requestHeaders[it.first.lowercase()] = it.second
+                this.requestHeaders[it.first] = it.second
             }
         }
 

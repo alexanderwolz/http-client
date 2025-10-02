@@ -64,17 +64,23 @@ internal class OkHttpClientWrapper(
     ): Request {
 
         val requestHeaders = HashMap<String, Set<String>>().apply {
-            putAll(headers)
+            headers.forEach {
+                val key = it.key.lowercase()
+                if(contains(it.key)){
+                    logger.warn { "Header with key=${it.key} already exist in map (${get(it.key)}), overwriting with ${values.joinToString()}" }
+                }
+                put(key,it.value)
+            }
         }
 
         accessToken?.let {
             //overwrite Authorization header if accessToken is given
-            requestHeaders.put("Authorization", setOf("${StringUtils.capitalize(it.type)} ${it.encodedJWT}"))
+            requestHeaders.put("authorization", setOf("${StringUtils.capitalize(it.type)} ${it.encodedJWT}"))
         }
 
         acceptTypes?.map { it.mediaType }?.takeIf { it.isNotEmpty() }?.let {
             //overwrite accept header from types
-            requestHeaders.put("Accept", it.toSet())
+            requestHeaders.put("accept", it.toSet())
         }
 
         return Request(method, endpoint, requestHeaders, payload, acceptTypes)

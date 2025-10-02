@@ -6,10 +6,12 @@ import com.google.gson.JsonParser
 import de.alexanderwolz.commons.util.CertificateUtils
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
+import de.alexanderwolz.http.client.instance.OkHttpClientWrapper
 import de.alexanderwolz.http.client.model.*
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
 import de.alexanderwolz.http.client.model.payload.PayloadImpl
+import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
 import de.alexanderwolz.http.client.model.type.BasicContentTypes
 import okhttp3.mockwebserver.MockResponse
@@ -40,6 +42,39 @@ class HttpClientTest {
     @AfterEach
     fun teardown() {
         mockServer.shutdown()
+    }
+
+    @Test
+    fun testInstance() {
+        val httpClient = HttpClient.Builder().endpoint(URI.create("/endpoint")).build()
+        assertNotNull(httpClient)
+        assertIs<OkHttpClientWrapper>(httpClient)
+    }
+
+    @Test
+    fun testProperties() {
+        val pair = CertificateUtils.generateNewCertificatePair("CN=Test")
+        val certs = CertificateBundle(pair.first, listOf(pair.second), emptyList())
+        val httpClient = HttpClient.Builder()
+            .certificates(certs)
+            .verifyCert(false)
+            .accessToken(AccessToken("haha", "Bearer", 60, "scope"))
+            .proxy(URI.create("http://localhost:8080"))
+            .headers(Pair("user", setOf("MyName")))
+            .headers("server" to setOf("ATARI"))
+            .userAgent("Agent")
+            .method(HttpMethod.DELETE)
+            .endpoint(URI.create("/endpoint"))
+            .build()
+        assertNotNull(httpClient)
+        assertIs<OkHttpClientWrapper>(httpClient)
+        assertNotNull(httpClient.request)
+        assertTrue { httpClient.request.headers.contains("user")}
+        assertTrue { httpClient.request.headers.contains("server")}
+        assertTrue { httpClient.request.headers.contains("authorization")}
+        assertTrue { httpClient.request.headers.contains("user-agent")}
+        assertEquals(HttpMethod.DELETE, httpClient.request.httpMethod)
+        assertEquals(URI.create("/endpoint"), httpClient.request.endpoint)
     }
 
     @Test
