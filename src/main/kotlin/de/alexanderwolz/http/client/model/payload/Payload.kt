@@ -18,11 +18,15 @@ interface Payload<T> {
         }
 
         fun create(type: ContentType, bytes: ByteArray, resolver: ContentResolver? = null): Payload<Any> {
-            return object : AbstractPayload<Any>(type, bytes = bytes, customResolver = resolver) {}
+            return type.wrappingClazz?.let {
+                object : AbstractWrappedPayload<Any, Any>(type, bytes = bytes, customResolver = resolver) {}
+            } ?: object : AbstractPayload<Any>(type, bytes = bytes, customResolver = resolver) {}
         }
 
         fun create(type: ContentType, element: Any, resolver: ContentResolver? = null): Payload<Any> {
-            return object : AbstractPayload<Any>(type, element = element, customResolver = resolver) {}
+            return type.wrappingClazz?.let {
+                object : AbstractWrappedPayload<Any, Any>(type, element = element, customResolver = resolver) {}
+            } ?: object : AbstractPayload<Any>(type, element = element, customResolver = resolver) {}
         }
     }
 }

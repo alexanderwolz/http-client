@@ -12,6 +12,7 @@ import de.alexanderwolz.http.client.model.content.BasicContentTypes
 import de.alexanderwolz.http.client.model.content.ContentResolver
 import de.alexanderwolz.http.client.model.content.ContentType
 import de.alexanderwolz.http.client.model.payload.Payload
+import de.alexanderwolz.http.client.model.payload.WrappedPayload
 import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.socket.SslSocket
 import okhttp3.MediaType.Companion.toMediaType
@@ -106,7 +107,9 @@ abstract class AbstractHttpClient<T>(
         if (payload == Payload.EMPTY) {
             return null
         }
-        //Payload bytes represent the serialized object for transferring to server
+        if (payload is WrappedPayload<*, *>) {
+            return payload.parentBytes.toRequestBody(payload.type.mediaType.toMediaType())
+        }
         return payload.bytes.toRequestBody(payload.type.mediaType.toMediaType())
     }
 

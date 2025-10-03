@@ -9,6 +9,7 @@ import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
 import de.alexanderwolz.http.client.model.content.BasicContentTypes
 import de.alexanderwolz.http.client.model.payload.Payload
+import de.alexanderwolz.http.client.model.payload.WrappedPayload
 import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
 import de.alexanderwolz.http.client.util.MockUtils
@@ -336,11 +337,12 @@ class HttpClientTest {
         //User creates payload with product -> server needs wrapped
         //Server sends content, client creates payload - client need unwrapped
 
-        MockUtils.startWrappedProductServer(mockServer)
+        val serverJson = MockUtils.startWrappedProductServer(mockServer)
+        val serverProductContainer = Json.decodeFromString<ProductContainer>(serverJson)
 
         //we send product to server, it returns wrappedProduct, but we use wrapping
         val product = Product("666", "Satanic Sandman")
-        val payload = Payload.create(CustomContentTypes.PRODUCT, product)
+        val payload = Payload.create(CustomContentTypes.PRODUCT, product, CustomContentResolver())
         assertNotNull(payload)
         assertEquals(product, payload.element)
 
@@ -351,10 +353,15 @@ class HttpClientTest {
             .body(payload)
             .build()
 
+
         val response = client.execute()
         assertNotNull(response)
+        assertIs<WrappedPayload<*, *>>(response.body)
         assertEquals(CustomContentTypes.WRAPPED_PRODUCT, response.body.type)
-        assertEquals(MockUtils.CONTENT_WRAPPED_JSON, response.body.bytes.decodeToString())
+        assertEquals(serverProductContainer, response.body.parent)
+        assertEquals(serverProductContainer.element, response.body.element)
+        assertEquals(ProductContainer::class, response.body.parent::class)
+        assertEquals(MockUtils.CONTENT_WRAPPED_JSON, response.body.parentBytes.decodeToString())
 
         val expectedPayload = Json.decodeFromString<Product>(MockUtils.CONTENT_PRODUCT_JSON)
         assertEquals(expectedPayload, response.body.element)
