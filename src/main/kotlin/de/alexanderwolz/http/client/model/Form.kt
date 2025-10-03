@@ -12,6 +12,11 @@ class Form() {
         this.map.putAll(map)
     }
 
+    constructor(vararg pairs: Pair<String, String>) : this() {
+        val map = mapOf(*pairs)
+        this.map.putAll(map)
+    }
+
     constructor(encodedString: String) : this() {
         val parsedMap = encodedString.split("&").associate { pair ->
             val (key, value) = pair.split("=", limit = 2)
