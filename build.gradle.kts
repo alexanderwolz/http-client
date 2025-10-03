@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.2.10"
+    kotlin("plugin.serialization") version "1.9.22"
     id("java-library")
     id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
     id("maven-publish")
@@ -29,7 +30,7 @@ dependencies {
     implementation("de.alexanderwolz:commons-util:1.2.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.81")
-    implementation("com.google.code.gson:gson:2.13.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
     testImplementation(kotlin("test"))
     testImplementation("org.slf4j:slf4j-simple:2.0.17")

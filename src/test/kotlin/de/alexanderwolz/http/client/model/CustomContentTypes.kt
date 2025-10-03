@@ -1,36 +1,53 @@
 package de.alexanderwolz.http.client.model
 
-import com.google.gson.Gson
 import de.alexanderwolz.http.client.Constants.MEDIA_TYPE_PRODUCT
-import de.alexanderwolz.http.client.model.converter.ElementConverter
-import de.alexanderwolz.http.client.model.converter.ParentConverter
-import de.alexanderwolz.http.client.model.type.ContentType
+import de.alexanderwolz.http.client.model.content.resolver.ContentResolver
+import de.alexanderwolz.http.client.model.content.type.ContentType
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import kotlin.reflect.KClass
 
 enum class CustomContentTypes(
     override val mediaType: String,
     override val clazz: KClass<*>,
-    override val elementConverter: ElementConverter<*>,
-    override val parentConverter: ParentConverter<*, *>? = null
+    override val resolver: ContentResolver
 ) : ContentType {
 
-    PRODUCT(MEDIA_TYPE_PRODUCT, Product::class, ProductConverter()),
+    PRODUCT(MEDIA_TYPE_PRODUCT, Product::class, ProductContentResolver(Product::class)),
+    WRAPPED_PRODUCT(MEDIA_TYPE_PRODUCT, Product::class, ProductContentResolver(WrappedProduct::class));
 
-    WRAPPED_PRODUCT(
-        MEDIA_TYPE_PRODUCT, Product::class,
-        WrappedProductConverter(),
-        object : ParentConverter<WrappedProduct, Product> {
+    private class ProductContentResolver(private val parentClass: KClass<*>) : ContentResolver {
 
-            override val parentClass = WrappedProduct::class
-
-            override fun decode(bytes: ByteArray): WrappedProduct {
-                return Gson().fromJson(bytes.decodeToString(), parentClass.java)
-            }
-
-            override fun unwrap(parent: WrappedProduct): Product {
-                return parent.element
-            }
-
+        override fun getParentClass(type: ContentType): KClass<*> {
+            return parentClass
         }
-    );
+
+        override fun extract(type: ContentType, element: Any): Any {
+            return (element as WrappedProduct).element
+        }
+
+        override fun serialize(clazz: KClass<*>, element: Any): ByteArray {
+            if (element is WrappedProduct) {
+                return Json.encodeToString(element).toByteArray()
+            }
+            if (element is Product) {
+                return Json.encodeToString(element).toByteArray()
+            }
+            throw NoSuchElementException("Unknown element ${element.javaClass}")
+        }
+
+        override fun serialize(type: ContentType, element: Any): ByteArray {
+            return serialize(type.clazz, element)
+        }
+
+        override fun deserialize(clazz: KClass<*>, bytes: ByteArray): Any {
+            val serializer = serializer(clazz.java)
+            return Json.decodeFromString(serializer, bytes.decodeToString())
+        }
+
+        override fun deserialize(type: ContentType, bytes: ByteArray): Any {
+            return deserialize(type.clazz, bytes)
+        }
+    }
 }

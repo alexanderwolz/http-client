@@ -1,7 +1,7 @@
 package de.alexanderwolz.http.client.model
 
+import de.alexanderwolz.http.client.model.content.type.ContentType
 import de.alexanderwolz.http.client.model.payload.Payload
-import de.alexanderwolz.http.client.model.type.ContentType
 import java.net.URI
 
 data class Request(

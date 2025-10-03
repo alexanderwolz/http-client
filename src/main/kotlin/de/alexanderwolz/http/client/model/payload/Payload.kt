@@ -1,7 +1,7 @@
 package de.alexanderwolz.http.client.model.payload
 
-import de.alexanderwolz.http.client.model.type.BasicContentTypes
-import de.alexanderwolz.http.client.model.type.ContentType
+import de.alexanderwolz.http.client.model.content.type.BasicContentTypes
+import de.alexanderwolz.http.client.model.content.type.ContentType
 
 interface Payload {
     val type: ContentType

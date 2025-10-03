@@ -2,6 +2,9 @@ package de.alexanderwolz.http.client.model
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.util.*
 
 class JwtHelper {
@@ -14,21 +17,14 @@ class JwtHelper {
     }
 
     fun createEncodedJWT(
-        subject: String,
-        issuer: String,
-        claims: Map<String, String>,
-        expiresInSeconds: Int,
-        scope: String
+        subject: String, issuer: String, claims: Map<String, String>, expiresInSeconds: Int, scope: String
     ): String {
         val algorithm = Algorithm.HMAC256(TEST_SECRET)
         val expiresAt = Date(System.currentTimeMillis() + expiresInSeconds * 1000)
 
-        var builder = JWT.create()
-            .withSubject(subject)
-            .withIssuer(issuer)
-            .withClaim("scope", "scope")
-            .withIssuedAt(Date())
-            .withExpiresAt(expiresAt)
+        var builder =
+            JWT.create().withSubject(subject).withIssuer(issuer).withClaim("scope", "scope").withIssuedAt(Date())
+                .withExpiresAt(expiresAt)
 
         claims.forEach { (key, value) ->
             builder = builder.withClaim(key, value)
@@ -38,19 +34,10 @@ class JwtHelper {
     }
 
     fun createOauthResponse(
-        subject: String,
-        issuer: String,
-        claims: Map<String, String>,
-        expiresInSeconds: Int,
-        scope: String
+        subject: String, issuer: String, claims: Map<String, String>, expiresInSeconds: Int, scope: String
     ): String {
         val jwt = createEncodedJWT(subject, issuer, claims, expiresInSeconds, scope)
-        return StringBuilder("{").apply {
-            append("\"access_token\": \"$jwt\"")
-            append(",\"token_type\": \"Bearer\"")
-            append(",\"expires_in\": \"$expiresInSeconds\"")
-            append(",\"scope\": \"$scope\"")
-            append("}")
-        }.toString()
+        val tokenResponse = OAuthTokenResponse("Bearer", null, null, jwt, expiresInSeconds, null, null, scope)
+        return Json.encodeToString(tokenResponse)
     }
 }

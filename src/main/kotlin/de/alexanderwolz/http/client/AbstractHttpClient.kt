@@ -1,6 +1,5 @@
 package de.alexanderwolz.http.client
 
-import com.google.gson.JsonElement
 import de.alexanderwolz.commons.log.Logger
 import de.alexanderwolz.commons.util.StringUtils
 import de.alexanderwolz.http.client.exception.HttpExecutionException
@@ -10,10 +9,10 @@ import de.alexanderwolz.http.client.model.HttpMethod
 import de.alexanderwolz.http.client.model.Request
 import de.alexanderwolz.http.client.model.Response
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
+import de.alexanderwolz.http.client.model.content.type.BasicContentTypes
+import de.alexanderwolz.http.client.model.content.type.ContentType
 import de.alexanderwolz.http.client.model.payload.Payload
 import de.alexanderwolz.http.client.model.token.AccessToken
-import de.alexanderwolz.http.client.model.type.BasicContentTypes
-import de.alexanderwolz.http.client.model.type.ContentType
 import de.alexanderwolz.http.client.socket.SslSocket
 import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
@@ -118,10 +117,6 @@ abstract class AbstractHttpClient<T>(
 
             is String -> {
                 (payload.element as String).toRequestBody(type.mediaType.toMediaType())
-            }
-
-            is JsonElement -> {
-                (payload.element as JsonElement).asString.toRequestBody(type.mediaType.toMediaType())
             }
 
             else -> {

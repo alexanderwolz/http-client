@@ -4,9 +4,9 @@ import de.alexanderwolz.http.client.AbstractHttpClient
 import de.alexanderwolz.http.client.model.HttpMethod
 import de.alexanderwolz.http.client.model.Request
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
+import de.alexanderwolz.http.client.model.content.type.ContentType
 import de.alexanderwolz.http.client.model.payload.Payload
 import de.alexanderwolz.http.client.model.token.AccessToken
-import de.alexanderwolz.http.client.model.type.ContentType
 import okhttp3.OkHttpClient
 import java.net.InetSocketAddress
 import java.net.Proxy
