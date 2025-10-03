@@ -54,6 +54,10 @@ interface HttpClient {
             this.httpMethod = httpMethod
         }
 
+        fun endpoint(endpoint: String, params: Map<String, String>? = null) = apply {
+            this.endpoint(URI.create(endpoint), params)
+        }
+
         fun endpoint(endpoint: URI, params: Map<String, String>? = null) = apply {
             this.endpoint = params?.let {
                 resolveEndpoint(endpoint, params)
