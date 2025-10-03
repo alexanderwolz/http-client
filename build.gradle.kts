@@ -1,3 +1,5 @@
+import java.util.*
+
 plugins {
     kotlin("jvm") version "2.2.10"
     kotlin("plugin.serialization") version "1.9.22"
@@ -89,12 +91,17 @@ publishing {
 }
 
 signing {
-    //useGpgCmd()
     val signingKey = System.getenv("GPG_PRIVATE_KEY")
     val signingPassword = System.getenv("GPG_PASSPHRASE")
 
     if (signingKey != null && signingPassword != null) {
-        useInMemoryPgpKeys(signingKey, signingPassword)
+        logger.info("GPG credentials found in System")
+        val decodedKey = String(Base64.getDecoder().decode(signingKey))
+        useInMemoryPgpKeys(decodedKey, signingPassword)
+        sign(publishing.publications["mavenJava"])
+    } else {
+        logger.info("No GPG credentials found in System, using cmd..")
+        useGpgCmd()
         sign(publishing.publications["mavenJava"])
     }
 }
