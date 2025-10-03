@@ -7,7 +7,8 @@ import kotlin.reflect.KClass
 enum class CustomContentTypes(
     override val mediaType: String,
     override val clazz: KClass<*>,
+    override val wrappingClazz: KClass<*>? = null
 ) : ContentType {
     PRODUCT(MEDIA_TYPE_PRODUCT, Product::class),
-    WRAPPED_PRODUCT(MEDIA_TYPE_PRODUCT, Product::class);
+    WRAPPED_PRODUCT(MEDIA_TYPE_PRODUCT, Product::class, WrappedProduct::class);
 }

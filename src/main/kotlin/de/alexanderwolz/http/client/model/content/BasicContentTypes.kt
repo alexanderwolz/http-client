@@ -8,7 +8,8 @@ import kotlin.reflect.KClass
 
 enum class BasicContentTypes(
     override val mediaType: String,
-    override val clazz: KClass<*>
+    override val clazz: KClass<*>,
+    override val wrappingClazz: KClass<Any>? = null
 ) : ContentType {
     EMPTY("EMPTY_BODY", String::class),
     TEXT_PLAIN("text/plain", String::class),

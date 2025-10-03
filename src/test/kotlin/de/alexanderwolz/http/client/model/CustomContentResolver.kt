@@ -9,6 +9,14 @@ import kotlin.reflect.KClass
 
 class CustomContentResolver : AbstractContentResolver() {
 
+    override fun extract(parentClazz: KClass<*>, parent: Any): Any {
+        if (parent::class == parentClazz) {
+            if (parent is WrappedProduct) return parent.element
+            throw NoSuchElementException("Unsupported parent element $parent")
+        }
+        return parent
+    }
+
     override fun serialize(clazz: KClass<*>, element: Any): ByteArray {
         if (element is WrappedProduct) {
             return Json.encodeToString(element).toByteArray()
