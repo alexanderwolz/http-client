@@ -1,17 +1,15 @@
 package de.alexanderwolz.http.client.model.payload
 
 import de.alexanderwolz.commons.log.Logger
-import de.alexanderwolz.http.client.model.converter.ElementConverter
-import de.alexanderwolz.http.client.model.converter.ParentConverter
-import de.alexanderwolz.http.client.model.type.ContentType
+import de.alexanderwolz.http.client.model.content.AbstractContentResolver
+import de.alexanderwolz.http.client.model.content.ContentResolver
+import de.alexanderwolz.http.client.model.content.ContentType
 import kotlin.reflect.KClass
 
 @Suppress("UNCHECKED_CAST")
-abstract class AbstractPayload : Payload {
+abstract class AbstractPayload<T : Any> : Payload<T> {
 
     protected val logger = Logger(javaClass)
-
-    var parentBytes: ByteArray? = null
 
     override lateinit var type: ContentType
         protected set
@@ -19,46 +17,66 @@ abstract class AbstractPayload : Payload {
     override lateinit var bytes: ByteArray
         protected set
 
-    override lateinit var element: Any
+    override lateinit var element: T
         protected set
 
-    constructor(type: ContentType, bytes: ByteArray) {
+    constructor(type: ContentType, bytes: ByteArray, customResolver: ContentResolver? = null) {
+        initialize(type, bytes, customResolver)
+    }
+
+    constructor(type: ContentType, element: T, customResolver: ContentResolver? = null) {
+        initialize(type, element, customResolver)
+    }
+
+    protected open fun initialize(type: ContentType, element: T, customResolver: ContentResolver?) {
         this.type = type
-        if (type.parentConverter != null) {
-            logger.debug { "Using parent converter: ${type.parentConverter}" }
-            val converter = type.parentConverter as ParentConverter<Any, Any>
-            val parent = converter.decode(bytes)
-            this.element = converter.unwrap(parent)
-            this.bytes = serialize(this.element)
-            this.parentBytes = bytes
-        } else {
-            this.bytes = bytes
-            this.element = deserialize(bytes)
-        }
+        handleSingle(null, element, customResolver)
         typeCheck()
     }
 
-    constructor(type: ContentType, element: Any) {
+    protected open fun initialize(type: ContentType, bytes: ByteArray, customResolver: ContentResolver?) {
         this.type = type
-        if (type.parentConverter != null) {
-            val converter = type.parentConverter as ParentConverter<Any, Any>
-            if (element::class == converter.parentClass) {
-                logger.debug { "Using parent converter: ${type.parentConverter}" }
-                this.parentBytes = serialize(element)
-                val child = converter.unwrap(element)
-                this.element = child
-                this.bytes = serialize(child)
-            } else if (element::class == type.clazz) {
-                this.element = element
-                this.bytes = serialize(element)
-            } else {
-                throw IllegalStateException("Unsupported element ${element.javaClass}")
-            }
-        } else {
-            this.element = element
-            this.bytes = serialize(element)
-        }
+        handleSingle(bytes, null, customResolver)
         typeCheck()
+    }
+
+    private fun handleSingle(bytes: ByteArray?, element: T?, customResolver: ContentResolver?) {
+        if (bytes != null) {
+            logger.trace { "Creating payload from bytes: ${bytes.size} -> ${bytes.decodeToString()}" }
+            this.bytes = bytes
+            this.element = deserialize(type.clazz as KClass<Any>, bytes, customResolver) as T
+        }
+        if (element != null) {
+            logger.trace { "Creating payload from element: $element" }
+            this.element = element
+            this.bytes = serialize(type.clazz as KClass<Any>, element, customResolver)
+        }
+    }
+
+    protected fun deserialize(clazz: KClass<*>, bytes: ByteArray, resolver: ContentResolver?): Any {
+        resolver?.let {
+            try {
+                logger.trace { "Using custom resolver for deserialization: $it" }
+                return it.deserialize(clazz, bytes)
+            } catch (t: Throwable) {
+                logger.trace { "Resolver threw Exception (${t.message ?: t.javaClass.simpleName}" }
+            }
+        }
+        logger.trace { "Using default resolver for deserialization ${resolver?.let { "" } ?: ", because custom resolver was null"}" }
+        return DefaultContentResolver().deserialize(clazz, bytes)
+    }
+
+    protected fun serialize(clazz: KClass<*>, element: Any, resolver: ContentResolver?): ByteArray {
+        resolver?.let {
+            try {
+                logger.trace { "Using custom resolver for serialization: $it" }
+                return it.serialize(clazz, element)
+            } catch (t: Throwable) {
+                logger.trace { "Resolver threw Exception (${t.message ?: t.javaClass.simpleName}" }
+            }
+        }
+        logger.trace { "Using default resolver for serialization ${resolver?.let { "" } ?: ", because custom resolver was null"}" }
+        return DefaultContentResolver().serialize(clazz, element)
     }
 
     private fun typeCheck() {
@@ -67,26 +85,14 @@ abstract class AbstractPayload : Payload {
         }
     }
 
+    protected class DefaultContentResolver : AbstractContentResolver() {
 
-    private fun serialize(element: Any): ByteArray {
-        val converter = type.elementConverter as ElementConverter<Any>
-        val clazz = type.clazz as KClass<Any>
-        return converter.serialize(element, clazz).apply {
-            logger.trace {
-                "Serialized from element ${element::class.java} into ByteArray " +
-                        "(media type '${type.mediaType}', contentType class=${type.clazz.java})"
-            }
+        override fun extract(parentClazz: KClass<*>, parent: Any): Any {
+            throw NoSuchElementException("Please specify custom content resolver to handle $parentClazz")
         }
-    }
 
-    private fun deserialize(bytes: ByteArray): Any {
-        val converter = type.elementConverter as ElementConverter<Any>
-        val clazz = type.clazz as KClass<Any>
-        return converter.deserialize(bytes, clazz).apply {
-            logger.trace {
-                "Deserialized from media type '${type.mediaType}' into " +
-                        "${this::class.java} (contentType class=${type.clazz.java})"
-            }
+        override fun wrap(parentClazz: KClass<*>, child: Any): Any {
+            throw NoSuchElementException("Please specify custom content resolver to handle $parentClazz")
         }
     }
 

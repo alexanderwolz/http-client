@@ -1,23 +1,19 @@
 package de.alexanderwolz.http.client
 
-import com.google.gson.Gson
-import com.google.gson.JsonElement
-import com.google.gson.JsonParser
 import de.alexanderwolz.commons.util.CertificateUtils
-import de.alexanderwolz.http.client.Constants.CONTENT_PRODUCT_JSON
-import de.alexanderwolz.http.client.Constants.CONTENT_WRAPPED_PRODUCT_JSON
-import de.alexanderwolz.http.client.Constants.MEDIA_TYPE_PRODUCT
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.instance.OkHttpClientWrapper
 import de.alexanderwolz.http.client.model.*
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
+import de.alexanderwolz.http.client.model.content.BasicContentTypes
 import de.alexanderwolz.http.client.model.payload.Payload
+import de.alexanderwolz.http.client.model.payload.WrappedPayload
 import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
-import de.alexanderwolz.http.client.model.type.BasicContentTypes
-import okhttp3.mockwebserver.MockResponse
+import de.alexanderwolz.http.client.util.MockUtils
+import kotlinx.serialization.json.*
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -84,7 +80,7 @@ class HttpClientTest {
     @Test
     fun testSimpleGetWithJson() {
 
-        startSimpleJsonServer()
+        MockUtils.startSimpleJsonServer(mockServer)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -105,13 +101,13 @@ class HttpClientTest {
     @Test
     fun testSimpleGetWithGSON() {
 
-        startSimpleJsonServer()
+        MockUtils.startSimpleJsonServer(mockServer)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.GET)
             .endpoint(mockServer.url("/endpoint").toUri())
-            .accept(BasicContentTypes.GSON)
+            .accept(BasicContentTypes.JSON_ELEMENT)
             .build()
 
         val response = httpClient.execute()
@@ -119,7 +115,7 @@ class HttpClientTest {
         assertEquals("OK", response.message)
         assertTrue { response.isOK }
         assertNotNull(response.body)
-        assertTrue { response.body.type == BasicContentTypes.GSON }
+        assertTrue { response.body.type == BasicContentTypes.JSON_ELEMENT }
         assertIs<JsonElement>(response.body.element)
     }
 
@@ -147,7 +143,7 @@ class HttpClientTest {
     @Test
     fun testSimpleGetWithoutAcceptTypeButReturnsBasicType() {
 
-        startSimpleJsonServer()
+        MockUtils.startSimpleJsonServer(mockServer)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -166,9 +162,9 @@ class HttpClientTest {
 
 
     @Test
-    fun testJsonElementPost() {
+    fun testJsonPost() {
 
-        startSimpleJsonServer()
+        MockUtils.startSimpleJsonServer(mockServer)
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
         val payload = Payload.create(BasicContentTypes.APPLICATION_JSON, jsonString)
@@ -190,24 +186,24 @@ class HttpClientTest {
     }
 
     @Test
-    fun testGsonElementPost() {
+    fun testJsonElementPost() {
 
-        startSimpleJsonServer()
+        MockUtils.startSimpleJsonServer(mockServer)
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
-        val jsonElement = Gson().toJsonTree(jsonString)
-        val payload = Payload.create(BasicContentTypes.GSON, jsonElement)
+        val jsonElement = Json.parseToJsonElement(jsonString)
+        val payload = Payload.create(BasicContentTypes.JSON_ELEMENT, jsonElement)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
             .endpoint(mockServer.url("/endpoint").toUri())
-            .accept(BasicContentTypes.GSON)
+            .accept(BasicContentTypes.JSON_ELEMENT)
             .body(payload)
             .build()
         val response = httpClient.execute()
         if (response.isOK) {
-            assertEquals(BasicContentTypes.GSON, response.body.type)
+            assertEquals(BasicContentTypes.JSON_ELEMENT, response.body.type)
             assertIs<JsonElement>(response.body.element)
         } else {
             throw Exception("Response should be OK, but was ${response.code}")
@@ -215,9 +211,9 @@ class HttpClientTest {
     }
 
     @Test
-    fun testJsonBinaryPost() {
+    fun testJsonStringPost() {
 
-        startSimpleJsonServer()
+        MockUtils.startSimpleJsonServer(mockServer)
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
         val payload = Payload.create(BasicContentTypes.APPLICATION_JSON, jsonString.toByteArray())
@@ -239,23 +235,24 @@ class HttpClientTest {
     }
 
     @Test
-    fun testGsonBinaryPost() {
+    fun testJsonBinaryPost() {
 
-        startSimpleJsonServer()
+        MockUtils.startSimpleJsonServer(mockServer)
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
-        val payload = Payload.create(BasicContentTypes.GSON, jsonString.toByteArray())
+        val productJson = Json.parseToJsonElement(jsonString)
+        val payload = Payload.create(BasicContentTypes.JSON_ELEMENT, productJson)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
             .method(HttpMethod.POST)
             .endpoint(mockServer.url("/endpoint").toUri())
-            .accept(BasicContentTypes.GSON)
+            .accept(BasicContentTypes.JSON_ELEMENT)
             .body(payload)
             .build()
         val response = httpClient.execute()
         if (response.isOK) {
-            assertEquals(BasicContentTypes.GSON, response.body.type)
+            assertEquals(BasicContentTypes.JSON_ELEMENT, response.body.type)
             assertIs<JsonElement>(response.body.element)
         } else {
             throw Exception("Response should be OK, but was ${response.code}")
@@ -265,7 +262,7 @@ class HttpClientTest {
     @Test
     fun testFormPost() {
 
-        startSimpleJsonServer()
+        MockUtils.startSimpleJsonServer(mockServer)
 
         val form = Form(mapOf("key1" to "value1"))
         val payload = Payload.create(BasicContentTypes.FORM_URL_ENCODED, form)
@@ -285,11 +282,13 @@ class HttpClientTest {
     @Test
     fun testGetWithCustomTypeProduct() {
 
-        startProductServer()
+        MockUtils.startProductServer(mockServer)
 
         val type = CustomContentTypes.PRODUCT
-        val content = Product("2", "Bananas")
-        val payload = Payload.create(type, content)
+        val product = Product("2", "Bananas")
+        val payload = Payload.create(type, product, CustomContentResolver())
+        assertNotNull(payload)
+        assertEquals(product, payload.element)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -299,12 +298,36 @@ class HttpClientTest {
             .body(payload)
             .build()
         val response = httpClient.execute()
-        assertEquals(MEDIA_TYPE_PRODUCT, response.body.type.mediaType)
-        assertEquals(MEDIA_TYPE_PRODUCT, response.request.body.type.mediaType)
+        assertEquals(MockUtils.MEDIA_TYPE_PRODUCT, response.body.type.mediaType)
+        assertEquals(MockUtils.MEDIA_TYPE_PRODUCT, response.request.body.type.mediaType)
     }
 
     @Test
-    fun testGetWithCustomTypeWrappedProduct() {
+    fun testGetWithCustomTypeProductContainer() {
+
+        MockUtils.startProductContainerServer(mockServer)
+
+        val type = CustomContentTypes.PRODUCT_CONTAINER
+        val product = Product("2", "Bananas")
+        val container = ProductContainer(product)
+        val payload = Payload.create(type, container, CustomContentResolver())
+        assertNotNull(payload)
+        assertEquals(container, payload.element)
+
+        val httpClient = HttpClient.Builder()
+            .userAgent(HttpClient::class.java.simpleName)
+            .method(HttpMethod.POST)
+            .endpoint(mockServer.url("/endpoint").toUri())
+            .accept(CustomContentTypes.PRODUCT_CONTAINER)
+            .body(payload)
+            .build()
+        val response = httpClient.execute()
+        assertEquals(MockUtils.MEDIA_TYPE_PRODUCT_CONTAINER, response.body.type.mediaType)
+        assertEquals(MockUtils.MEDIA_TYPE_PRODUCT_CONTAINER, response.request.body.type.mediaType)
+    }
+
+    @Test
+    fun testGetWithCustomTypeWrappedProductAsResponse() {
 
         // use case: maybe we want to work with an element, but it must be wrapped into something
         // else during transfer to and from server.
@@ -314,33 +337,40 @@ class HttpClientTest {
         //User creates payload with product -> server needs wrapped
         //Server sends content, client creates payload - client need unwrapped
 
-        startWrappedProductServer()
+        val serverJson = MockUtils.startWrappedProductServer(mockServer)
+        val serverProductContainer = Json.decodeFromString<ProductContainer>(serverJson)
 
         //we send product to server, it returns wrappedProduct, but we use wrapping
         val product = Product("666", "Satanic Sandman")
-        val payload = Payload.create(CustomContentTypes.PRODUCT, product)
+        val payload = Payload.create(CustomContentTypes.PRODUCT, product, CustomContentResolver())
         assertNotNull(payload)
+        assertEquals(product, payload.element)
 
         val client = HttpClient.Builder()
             .method(HttpMethod.POST)
             .endpoint(mockServer.url("/endpoint").toUri())
-            .accept(CustomContentTypes.WRAPPED_PRODUCT)
+            .accept(CustomContentTypes.WRAPPED_PRODUCT).resolver(CustomContentResolver())
             .body(payload)
             .build()
 
+
         val response = client.execute()
         assertNotNull(response)
+        assertIs<WrappedPayload<*, *>>(response.body)
+        assertEquals(CustomContentTypes.WRAPPED_PRODUCT, response.body.type)
+        assertEquals(serverProductContainer, response.body.parent)
+        assertEquals(serverProductContainer.element, response.body.element)
+        assertEquals(ProductContainer::class, response.body.parent::class)
+        assertEquals(MockUtils.CONTENT_WRAPPED_JSON, response.body.parentBytes.decodeToString())
 
-        val expectedPayload = Gson().fromJson(CONTENT_PRODUCT_JSON, Product::class.java)
-
+        val expectedPayload = Json.decodeFromString<Product>(MockUtils.CONTENT_PRODUCT_JSON)
         assertEquals(expectedPayload, response.body.element)
-
     }
 
     @Test
     fun testCertificateReferences() {
 
-        startSimpleJsonServer()
+        MockUtils.startSimpleJsonServer(mockServer)
 
         val keyFile = File(tmpDir, "key.pem")
         val certFile = File(tmpDir, "cert.pem")
@@ -363,7 +393,7 @@ class HttpClientTest {
     @Test
     fun testCertificateBundle() {
 
-        startSimpleJsonServer()
+        MockUtils.startSimpleJsonServer(mockServer)
 
         val certificatePair = CertificateUtils.generateNewCertificatePair("CN=Test", BigInteger.ZERO)
         val bundle = CertificateBundle(certificatePair.first, listOf(certificatePair.second), emptyList())
@@ -384,7 +414,7 @@ class HttpClientTest {
     @Test
     fun testAccessTokenJsonString() {
 
-        val jwt = startJwtServer()
+        val jwt = MockUtils.startJwtServer(mockServer)
 
         val client = HttpClient.Builder()
             .method(HttpMethod.GET)
@@ -404,8 +434,8 @@ class HttpClientTest {
     @Test
     fun testAccessTokenWithOauthType() {
 
-        val jwt = startJwtServer()
-        val jwtJsonElement = JsonParser.parseString(jwt).asJsonObject
+        val jwt = MockUtils.startJwtServer(mockServer)
+        val jwtJson = Json.parseToJsonElement(jwt).jsonObject
 
         val client = HttpClient.Builder()
             .method(HttpMethod.GET)
@@ -420,62 +450,12 @@ class HttpClientTest {
         assertEquals(BasicContentTypes.OAUTH_TOKEN, response.body.type)
         assertEquals(OAuthTokenResponse::class, response.body.element::class)
         val tokenResponse = response.body.element as OAuthTokenResponse
-        assertEquals(jwtJsonElement.get("access_token").asString, tokenResponse.accessToken)
-        assertEquals(jwtJsonElement.get("token_type").asString, tokenResponse.tokenType)
-        assertEquals(jwtJsonElement.get("expires_in").asInt, tokenResponse.expiresInSeconds)
+        assertEquals(jwtJson["access_token"]?.jsonPrimitive?.content, tokenResponse.accessToken)
+        assertEquals(jwtJson["token_type"]?.jsonPrimitive?.content, tokenResponse.tokenType)
+        assertEquals(jwtJson["expires_in"]?.jsonPrimitive?.int, tokenResponse.expiresInSeconds)
         val token = tokenResponse.toAccessToken()
         assertNotNull(token)
         assertFalse { token.isExpired() }
-    }
-
-    private fun startJwtServer(): String {
-
-        val oauthJson = JwtHelper().createOauthResponse(
-            JwtHelper.TEST_SECRET,
-            JwtHelper.TEST_ISSUER,
-            emptyMap(),
-            60,
-            JwtHelper.TEST_SCOPE
-        )
-        val mockResponse = MockResponse().apply {
-            setResponseCode(200)
-            setBody(oauthJson)
-            addHeader("Content-Type", "application/json")
-        }
-        mockServer.enqueue(mockResponse)
-        return oauthJson
-    }
-
-    private fun startSimpleJsonServer(): String {
-
-        val mockResponse = MockResponse().apply {
-            setResponseCode(200)
-            setBody(CONTENT_PRODUCT_JSON)
-            addHeader("Content-Type", "application/json")
-        }
-        mockServer.enqueue(mockResponse)
-        return CONTENT_PRODUCT_JSON
-    }
-
-    private fun startProductServer(): String {
-
-        val mockResponse = MockResponse().apply {
-            setResponseCode(200)
-            setBody(CONTENT_PRODUCT_JSON)
-            addHeader("Content-Type", CustomContentTypes.PRODUCT.mediaType)
-        }
-        mockServer.enqueue(mockResponse)
-        return CONTENT_PRODUCT_JSON
-    }
-
-    private fun startWrappedProductServer(): String {
-        val mockResponse = MockResponse().apply {
-            setResponseCode(200)
-            setBody(CONTENT_WRAPPED_PRODUCT_JSON)
-            addHeader("Content-Type", CustomContentTypes.PRODUCT.mediaType)
-        }
-        mockServer.enqueue(mockResponse)
-        return CONTENT_WRAPPED_PRODUCT_JSON
     }
 
 }

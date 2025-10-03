@@ -1,15 +1,18 @@
 package de.alexanderwolz.http.client.model.token
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+
+@Serializable
 data class OAuthErrorResponse(
 
     //see OAuth 2.0 RFC 6749
-    @SerializedName("error") val error: String,
-    @SerializedName("error_description") val description: String?,
-    @SerializedName("error_uri") val uri: String?,
+    @SerialName("error") val error: String,
+    @SerialName("error_description") val description: String? = null,
+    @SerialName("error_uri") val uri: String? = null,
 
     //non-standard but useful:
-    @SerializedName("message") val message: String?,
-    @SerializedName("status_code") val statusCode: String?
+    @SerialName("message") val message: String? = null,
+    @SerialName("status_code") val statusCode: String? = null
 )

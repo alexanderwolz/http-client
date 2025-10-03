@@ -1,20 +1,22 @@
 package de.alexanderwolz.http.client.model.token
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class OAuthTokenResponse(
-    @SerializedName("token_type") val tokenType: String,
+    @SerialName("token_type") val tokenType: String,
 
-    @SerializedName("id_token") val idToken: String?,
-    @SerializedName("user_id") val userId: String?,
+    @SerialName("id_token") val idToken: String? = null,
+    @SerialName("user_id") val userId: String? = null,
 
-    @SerializedName("access_token") val accessToken: String?,
-    @SerializedName("expires_in") val expiresInSeconds: Int,
+    @SerialName("access_token") val accessToken: String? = null,
+    @SerialName("expires_in") val expiresInSeconds: Int,
 
-    @SerializedName("refresh_token") val refreshToken: String?,
-    @SerializedName("refresh_expires_in") val refreshExpiresInSeconds: Int? = null,
+    @SerialName("refresh_token") val refreshToken: String? = null,
+    @SerialName("refresh_expires_in") val refreshExpiresInSeconds: Int? = null,
 
-    @SerializedName("scope") val scope: String?
+    @SerialName("scope") val scope: String? = null
 ) {
     fun toAccessToken(): AccessToken {
         return accessToken?.let {

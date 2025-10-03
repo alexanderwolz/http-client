@@ -4,9 +4,10 @@ import de.alexanderwolz.http.client.AbstractHttpClient
 import de.alexanderwolz.http.client.model.HttpMethod
 import de.alexanderwolz.http.client.model.Request
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
+import de.alexanderwolz.http.client.model.content.ContentResolver
+import de.alexanderwolz.http.client.model.content.ContentType
 import de.alexanderwolz.http.client.model.payload.Payload
 import de.alexanderwolz.http.client.model.token.AccessToken
-import de.alexanderwolz.http.client.model.type.ContentType
 import okhttp3.OkHttpClient
 import java.net.InetSocketAddress
 import java.net.Proxy
@@ -21,11 +22,12 @@ internal class OkHttpClientWrapper(
     httpMethod: HttpMethod,
     endpoint: URI,
     headers: Map<String, Set<String>>,
-    payload: Payload,
+    payload: Payload<*>,
+    resolver: ContentResolver?,
     acceptTypes: Set<ContentType>?,
     accessToken: AccessToken?
 ) : AbstractHttpClient<OkHttpClient>(
-    proxy, verifyCert, certificates, httpMethod, endpoint, headers, payload, acceptTypes, accessToken
+    proxy, verifyCert, certificates, httpMethod, endpoint, headers, payload, resolver, acceptTypes, accessToken
 ) {
 
     override fun createClient(): OkHttpClient {

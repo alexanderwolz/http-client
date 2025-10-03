@@ -1,36 +1,15 @@
 package de.alexanderwolz.http.client.model
 
-import com.google.gson.Gson
-import de.alexanderwolz.http.client.Constants.MEDIA_TYPE_PRODUCT
-import de.alexanderwolz.http.client.model.converter.ElementConverter
-import de.alexanderwolz.http.client.model.converter.ParentConverter
-import de.alexanderwolz.http.client.model.type.ContentType
+import de.alexanderwolz.http.client.model.content.ContentType
+import de.alexanderwolz.http.client.util.MockUtils
 import kotlin.reflect.KClass
 
 enum class CustomContentTypes(
     override val mediaType: String,
     override val clazz: KClass<*>,
-    override val elementConverter: ElementConverter<*>,
-    override val parentConverter: ParentConverter<*, *>? = null
+    override val wrappingClazz: KClass<*>? = null
 ) : ContentType {
-
-    PRODUCT(MEDIA_TYPE_PRODUCT, Product::class, ProductConverter()),
-
-    WRAPPED_PRODUCT(
-        MEDIA_TYPE_PRODUCT, Product::class,
-        WrappedProductConverter(),
-        object : ParentConverter<WrappedProduct, Product> {
-
-            override val parentClass = WrappedProduct::class
-
-            override fun decode(bytes: ByteArray): WrappedProduct {
-                return Gson().fromJson(bytes.decodeToString(), parentClass.java)
-            }
-
-            override fun unwrap(parent: WrappedProduct): Product {
-                return parent.element
-            }
-
-        }
-    );
+    PRODUCT(MockUtils.MEDIA_TYPE_PRODUCT, Product::class),
+    PRODUCT_CONTAINER(MockUtils.MEDIA_TYPE_PRODUCT_CONTAINER, ProductContainer::class),
+    WRAPPED_PRODUCT(MockUtils.MEDIA_TYPE_WRAPPED, Product::class, ProductContainer::class);
 }
