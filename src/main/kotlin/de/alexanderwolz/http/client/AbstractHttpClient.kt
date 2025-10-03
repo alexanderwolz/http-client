@@ -14,6 +14,7 @@ import de.alexanderwolz.http.client.model.content.type.ContentType
 import de.alexanderwolz.http.client.model.payload.Payload
 import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.socket.SslSocket
+import kotlinx.serialization.Serializable
 import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody
@@ -105,7 +106,12 @@ abstract class AbstractHttpClient<T>(
         if (payload == Payload.EMPTY) {
             return null
         }
+        //TODO use content resolvers hier??
+        // -> serialize
         val type = payload.type
+        if (payload.element::class.java.getAnnotation(Serializable::class.java) != null) {
+            return payload.element.toString().toRequestBody(type.mediaType.toMediaType())
+        }
         return when (payload.element) {
             is Form -> {
                 val builder = FormBody.Builder()
