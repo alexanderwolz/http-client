@@ -6,11 +6,12 @@ plugins {
     id("java-library")
     id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
     id("maven-publish")
+    jacoco
     signing
 }
 
 group = "de.alexanderwolz"
-version = "1.4.2"
+version = "1.4.3"
 
 repositories {
     mavenCentral()
@@ -55,6 +56,22 @@ tasks.jar {
             "Built-JDK" to System.getProperty("java.version"),
             "Created-By" to "Gradle ${gradle.gradleVersion}"
         )
+    }
+}
+
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+tasks.test {
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
     }
 }
 
