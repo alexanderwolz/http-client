@@ -1,8 +1,8 @@
 package de.alexanderwolz.http.client.model
 
-import de.alexanderwolz.http.client.Constants.MEDIA_TYPE_PRODUCT
 import de.alexanderwolz.http.client.model.content.resolver.ContentResolver
 import de.alexanderwolz.http.client.model.content.type.ContentType
+import de.alexanderwolz.http.client.util.MockUtils.MEDIA_TYPE_PRODUCT
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer

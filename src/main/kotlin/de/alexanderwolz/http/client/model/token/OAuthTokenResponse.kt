@@ -7,16 +7,16 @@ import kotlinx.serialization.Serializable
 data class OAuthTokenResponse(
     @SerialName("token_type") val tokenType: String,
 
-    @SerialName("id_token") val idToken: String?,
-    @SerialName("user_id") val userId: String?,
+    @SerialName("id_token") val idToken: String? = null,
+    @SerialName("user_id") val userId: String? = null,
 
-    @SerialName("access_token") val accessToken: String?,
+    @SerialName("access_token") val accessToken: String? = null,
     @SerialName("expires_in") val expiresInSeconds: Int,
 
-    @SerialName("refresh_token") val refreshToken: String?,
+    @SerialName("refresh_token") val refreshToken: String? = null,
     @SerialName("refresh_expires_in") val refreshExpiresInSeconds: Int? = null,
 
-    @SerialName("scope") val scope: String?
+    @SerialName("scope") val scope: String? = null
 ) {
     fun toAccessToken(): AccessToken {
         return accessToken?.let {

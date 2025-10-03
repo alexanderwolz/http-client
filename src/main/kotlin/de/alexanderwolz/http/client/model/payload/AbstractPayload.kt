@@ -22,17 +22,18 @@ abstract class AbstractPayload : Payload {
     constructor(type: ContentType, bytes: ByteArray) {
         this.type = type
         this.source = bytes
-        val parentClass = type.resolver.getParentClass(type)
+        val resolver = type.resolver
+        val parentClass = resolver.getParentClass(type)
         if (type.clazz == parentClass) {
             this.bytes = bytes
-            this.element = type.resolver.deserialize(type.clazz, bytes)
+            this.element = resolver.deserialize(type.clazz, bytes)
         } else {
             //TODO how to determine which element ist set here???
             //wrapping
             logger.debug { "Type $type is wrapped into $parentClass" }
-            val parent = type.resolver.deserialize(parentClass, bytes)
-            this.element = type.resolver.extract(type, parent)
-            this.bytes = type.resolver.serialize(type, this.element)
+            val parent = resolver.deserialize(parentClass, bytes)
+            this.element = resolver.extract(type, parent)
+            this.bytes = resolver.serialize(type, this.element)
         }
         typeCheck()
     }
@@ -40,16 +41,17 @@ abstract class AbstractPayload : Payload {
     constructor(type: ContentType, element: Any) {
         this.type = type
         this.source = element
-        val parentClass = type.resolver.getParentClass(type)
+        val resolver = type.resolver
+        val parentClass = resolver.getParentClass(type)
         if (type.clazz == parentClass) {
             this.element = element
-            this.bytes = type.resolver.serialize(type.clazz, element)
+            this.bytes = resolver.serialize(type.clazz, element)
         } else {
             //wrapping
             logger.debug { "Type $type is wrapped into $parentClass" }
             val parent = element
-            this.element = type.resolver.extract(type, parent)
-            this.bytes = type.resolver.serialize(type, this.element)
+            this.element = resolver.extract(type, parent)
+            this.bytes = resolver.serialize(type, this.element)
         }
         typeCheck()
     }
