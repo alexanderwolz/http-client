@@ -21,14 +21,14 @@ You can pull the latest binaries from the central Maven repositories:
 
 with Gradle
 ```kotlin
-implementation("de.alexanderwolz:http-client:1.3.7")
+implementation("de.alexanderwolz:http-client:1.4.0")
 ```
 with Maven
 ```xml
 <dependency>
   <groupId>de.alexanderwolz</groupId>
   <artifactId>http-client</artifactId>
-    <version>1.3.7</version>
+    <version>1.4.0</version>
 </dependency>
 ```
 
