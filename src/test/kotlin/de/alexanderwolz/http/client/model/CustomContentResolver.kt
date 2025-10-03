@@ -9,6 +9,11 @@ import kotlin.reflect.KClass
 
 class CustomContentResolver : AbstractContentResolver() {
 
+    override fun wrap(parentClazz: KClass<*>, child: Any): Any {
+        if (child is Product) return WrappedProduct(child)
+        throw NoSuchElementException("Unsupported child element $child")
+    }
+
     override fun extract(parentClazz: KClass<*>, parent: Any): Any {
         if (parent::class == parentClazz) {
             if (parent is WrappedProduct) return parent.element

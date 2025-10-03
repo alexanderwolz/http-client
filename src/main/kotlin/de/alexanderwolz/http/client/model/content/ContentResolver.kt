@@ -3,7 +3,8 @@ package de.alexanderwolz.http.client.model.content
 import kotlin.reflect.KClass
 
 interface ContentResolver {
-    //fun getParentClass(type: ContentType): KClass<*>
+
+    fun wrap(parentClazz: KClass<*>, child: Any): Any
     fun extract(parentClazz: KClass<*>, parent: Any): Any
 
     fun serialize(clazz: KClass<*>, element: Any): ByteArray

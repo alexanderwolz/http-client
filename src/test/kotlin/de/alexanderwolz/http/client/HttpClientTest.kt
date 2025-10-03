@@ -13,6 +13,7 @@ import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
 import de.alexanderwolz.http.client.util.MockUtils
 import de.alexanderwolz.http.client.util.MockUtils.CONTENT_PRODUCT_JSON
+import de.alexanderwolz.http.client.util.MockUtils.CONTENT_WRAPPED_PRODUCT_JSON
 import de.alexanderwolz.http.client.util.MockUtils.MEDIA_TYPE_PRODUCT
 import kotlinx.serialization.json.*
 import okhttp3.mockwebserver.MockWebServer
@@ -303,7 +304,7 @@ class HttpClientTest {
     }
 
     @Test
-    fun testGetWithCustomTypeWrappedProduct() {
+    fun testGetWithCustomTypeWrappedProductAsResponse() {
 
         // use case: maybe we want to work with an element, but it must be wrapped into something
         // else during transfer to and from server.
@@ -324,13 +325,15 @@ class HttpClientTest {
         val client = HttpClient.Builder()
             .method(HttpMethod.POST)
             .endpoint(mockServer.url("/endpoint").toUri())
-            .accept(CustomContentTypes.WRAPPED_PRODUCT)
-            .resolver(CustomContentResolver())
+            .accept(CustomContentTypes.WRAPPED_PRODUCT).resolver(CustomContentResolver())
             .body(payload)
             .build()
 
         val response = client.execute()
         assertNotNull(response)
+        assertEquals(CustomContentTypes.WRAPPED_PRODUCT, response.body.type)
+        assertEquals(CONTENT_WRAPPED_PRODUCT_JSON, response.body.bytes.decodeToString())
+
 
         val expectedPayload = Json.decodeFromString<Product>(CONTENT_PRODUCT_JSON)
 
