@@ -4,13 +4,10 @@ import de.alexanderwolz.commons.util.CertificateUtils
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.instance.OkHttpClientWrapper
-import de.alexanderwolz.http.client.model.CustomContentTypes
-import de.alexanderwolz.http.client.model.Form
-import de.alexanderwolz.http.client.model.HttpMethod
-import de.alexanderwolz.http.client.model.Product
+import de.alexanderwolz.http.client.model.*
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
-import de.alexanderwolz.http.client.model.content.type.BasicContentTypes
+import de.alexanderwolz.http.client.model.content.BasicContentTypes
 import de.alexanderwolz.http.client.model.payload.Payload
 import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
@@ -288,8 +285,10 @@ class HttpClientTest {
         MockUtils.startProductServer(mockServer)
 
         val type = CustomContentTypes.PRODUCT
-        val content = Product("2", "Bananas")
-        val payload = Payload.create(type, content)
+        val product = Product("2", "Bananas")
+        val payload = Payload.create(type, product, CustomContentResolver())
+        assertNotNull(payload)
+        assertEquals(product, payload.element)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -320,11 +319,13 @@ class HttpClientTest {
         val product = Product("666", "Satanic Sandman")
         val payload = Payload.create(CustomContentTypes.PRODUCT, product)
         assertNotNull(payload)
+        assertEquals(product, payload.element)
 
         val client = HttpClient.Builder()
             .method(HttpMethod.POST)
             .endpoint(mockServer.url("/endpoint").toUri())
             .accept(CustomContentTypes.WRAPPED_PRODUCT)
+            .resolver(CustomContentResolver())
             .body(payload)
             .build()
 

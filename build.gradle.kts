@@ -33,6 +33,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
     testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlin:kotlin-reflect:1.9.22")
     testImplementation("org.slf4j:slf4j-simple:2.0.17")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("com.auth0:java-jwt:4.4.0")

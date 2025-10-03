@@ -1,14 +1,20 @@
 package de.alexanderwolz.http.client.model.payload
 
 import de.alexanderwolz.commons.log.Logger
-import de.alexanderwolz.http.client.model.content.type.ContentType
+import de.alexanderwolz.http.client.model.content.AbstractContentResolver
+import de.alexanderwolz.http.client.model.content.ContentResolver
+import de.alexanderwolz.http.client.model.content.ContentType
+import kotlin.reflect.KClass
 
 @Suppress("UNCHECKED_CAST")
-abstract class AbstractPayload : Payload {
+abstract class AbstractPayload<T : Any>(
+    type: ContentType,
+    bytes: ByteArray? = null,
+    element: T? = null,
+    customResolver: ContentResolver? = null
+) : Payload<T> {
 
     protected val logger = Logger(javaClass)
-
-    var source: Any? = null
 
     override lateinit var type: ContentType
         protected set
@@ -16,44 +22,51 @@ abstract class AbstractPayload : Payload {
     override lateinit var bytes: ByteArray
         protected set
 
-    override lateinit var element: Any
+    override lateinit var element: T
         protected set
 
-    constructor(type: ContentType, bytes: ByteArray) {
+    init {
         this.type = type
-        this.source = bytes
-        val resolver = type.resolver
-        val parentClass = resolver.getParentClass(type)
-        if (type.clazz == parentClass) {
+        if (bytes == null && element == null) {
+            throw IllegalStateException("Both bytes and element are null. Please check input")
+        }
+        if (bytes != null) {
+            logger.trace { "Creating payload from bytes: ${bytes.size} -> ${bytes.decodeToString()}" }
             this.bytes = bytes
-            this.element = resolver.deserialize(type.clazz, bytes)
-        } else {
-            //TODO how to determine which element ist set here???
-            //wrapping
-            logger.debug { "Type $type is wrapped into $parentClass" }
-            val parent = resolver.deserialize(parentClass, bytes)
-            this.element = resolver.extract(type, parent)
-            this.bytes = resolver.serialize(type, this.element)
+            this.element = deserialize(type.clazz as KClass<T>, bytes, customResolver)
+        }
+        if (element != null) {
+            logger.trace { "Creating payload from element: $element" }
+            this.element = element
+            this.bytes = serialize(type.clazz as KClass<T>, element, customResolver)
         }
         typeCheck()
     }
 
-    constructor(type: ContentType, element: Any) {
-        this.type = type
-        this.source = element
-        val resolver = type.resolver
-        val parentClass = resolver.getParentClass(type)
-        if (type.clazz == parentClass) {
-            this.element = element
-            this.bytes = resolver.serialize(type.clazz, element)
-        } else {
-            //wrapping
-            logger.debug { "Type $type is wrapped into $parentClass" }
-            val parent = element
-            this.element = resolver.extract(type, parent)
-            this.bytes = resolver.serialize(type, this.element)
+    private fun deserialize(clazz: KClass<T>, bytes: ByteArray, resolver: ContentResolver?): T {
+        resolver?.let {
+            try {
+                logger.trace { "Using custom resolver: $it" }
+                return it.deserialize(clazz, bytes) as T
+            } catch (t: Throwable) {
+                logger.error(t) { "Resolver threw Exception" }
+            }
         }
-        typeCheck()
+        logger.trace { "Using default resolver${resolver?.let { "" } ?: ", because custom resolver was null"}" }
+        return object : AbstractContentResolver() {}.deserialize(clazz, bytes) as T
+    }
+
+    private fun serialize(clazz: KClass<T>, element: T, resolver: ContentResolver?): ByteArray {
+        resolver?.let {
+            try {
+                logger.trace { "Using custom resolver: $it" }
+                return it.serialize(clazz, element)
+            } catch (t: Throwable) {
+                logger.error(t) { "Resolver threw Exception" }
+            }
+        }
+        logger.trace { "Using default resolver" }
+        return object : AbstractContentResolver() {}.serialize(clazz, element)
     }
 
     private fun typeCheck() {

@@ -4,18 +4,16 @@ import de.alexanderwolz.commons.log.Logger
 import de.alexanderwolz.commons.util.StringUtils
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
-import de.alexanderwolz.http.client.model.Form
 import de.alexanderwolz.http.client.model.HttpMethod
 import de.alexanderwolz.http.client.model.Request
 import de.alexanderwolz.http.client.model.Response
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
-import de.alexanderwolz.http.client.model.content.type.BasicContentTypes
-import de.alexanderwolz.http.client.model.content.type.ContentType
+import de.alexanderwolz.http.client.model.content.BasicContentTypes
+import de.alexanderwolz.http.client.model.content.ContentResolver
+import de.alexanderwolz.http.client.model.content.ContentType
 import de.alexanderwolz.http.client.model.payload.Payload
 import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.socket.SslSocket
-import kotlinx.serialization.Serializable
-import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -36,7 +34,8 @@ abstract class AbstractHttpClient<T>(
     httpMethod: HttpMethod,
     endpoint: URI,
     headers: Map<String, Set<String>>,
-    payload: Payload,
+    payload: Payload<*>,
+    resolver: ContentResolver?,
     acceptTypes: Set<ContentType>?,
     accessToken: AccessToken?
 ) : HttpClient {
@@ -44,6 +43,7 @@ abstract class AbstractHttpClient<T>(
     protected val logger = Logger(javaClass)
 
     protected val customSslSocket = certificates?.let { createCustomSslSocketFactory(certificates, verifyCert) }
+    private val customResolver = resolver
 
     override val request = createRequest(httpMethod, endpoint, headers, payload, acceptTypes, accessToken)
 
@@ -73,7 +73,7 @@ abstract class AbstractHttpClient<T>(
         method: HttpMethod,
         endpoint: URI,
         headers: Map<String, Set<String>>,
-        payload: Payload,
+        payload: Payload<*>,
         acceptTypes: Set<ContentType>?,
         accessToken: AccessToken? = null
     ): Request {
@@ -102,34 +102,12 @@ abstract class AbstractHttpClient<T>(
             .also { logRequest(it) }
     }
 
-    protected fun convertRequestBody(payload: Payload): RequestBody? {
+    protected fun convertRequestBody(payload: Payload<*>): RequestBody? {
         if (payload == Payload.EMPTY) {
             return null
         }
-        //TODO use content resolvers hier??
-        // -> serialize
-        val type = payload.type
-        if (payload.element::class.java.getAnnotation(Serializable::class.java) != null) {
-            return payload.element.toString().toRequestBody(type.mediaType.toMediaType())
-        }
-        return when (payload.element) {
-            is Form -> {
-                val builder = FormBody.Builder()
-                (payload.element as Form).entries.forEach { entry ->
-                    builder.add(entry.key, entry.value)
-                }
-                builder.build()
-            }
-
-            is String -> {
-                (payload.element as String).toRequestBody(type.mediaType.toMediaType())
-            }
-
-            else -> {
-                //TODO validate
-                payload.bytes.toRequestBody(type.mediaType.toMediaType())
-            }
-        }
+        //Payload bytes represent the serialized object for transferring to server
+        return payload.bytes.toRequestBody(payload.type.mediaType.toMediaType())
     }
 
     protected fun logRequest(request: Request) {
@@ -163,14 +141,14 @@ abstract class AbstractHttpClient<T>(
         }
     }
 
-    fun getBodyString(payload: Payload): String? {
+    fun getBodyString(payload: Payload<*>): String? {
         if (payload == Payload.EMPTY) return null
         return StringBuilder().apply {
             append(payload.bytes.decodeToString()) //TODO parse element?
         }.toString()
     }
 
-    private fun convertResponseBody(mediaTypes: List<String>, bytes: ByteArray?): Payload {
+    private fun convertResponseBody(mediaTypes: List<String>, bytes: ByteArray?): Payload<*> {
         if (mediaTypes.isEmpty()) {
             if (bytes == null || bytes.isEmpty()) {
                 logger.trace { "Server did not return any content-type nor bytes" }
@@ -205,9 +183,9 @@ abstract class AbstractHttpClient<T>(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun createResponsePayload(type: ContentType, bytes: ByteArray?): Payload {
+    private fun createResponsePayload(type: ContentType, bytes: ByteArray?): Payload<*> {
         bytes?.let {
-            return Payload.create(type, bytes)
+            return Payload.create(type, bytes, customResolver)
         }
         throw NoSuchElementException("Received empty byte array with content type: $type")
     }

@@ -1,11 +1,10 @@
-package de.alexanderwolz.http.client.model.content.resolver
+package de.alexanderwolz.http.client.model.content
 
-import de.alexanderwolz.http.client.model.content.type.ContentType
 import kotlin.reflect.KClass
 
 interface ContentResolver {
-    fun getParentClass(type: ContentType): KClass<*>
-    fun extract(type: ContentType, element: Any): Any
+    //fun getParentClass(type: ContentType): KClass<*>
+    //fun extract(type: ContentType, element: Any): Any
 
     fun serialize(clazz: KClass<*>, element: Any): ByteArray
     fun serialize(type: ContentType, element: Any): ByteArray

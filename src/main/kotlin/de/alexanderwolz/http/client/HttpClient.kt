@@ -9,7 +9,8 @@ import de.alexanderwolz.http.client.model.Request
 import de.alexanderwolz.http.client.model.Response
 import de.alexanderwolz.http.client.model.certificate.CertificateBundle
 import de.alexanderwolz.http.client.model.certificate.CertificateReference
-import de.alexanderwolz.http.client.model.content.type.ContentType
+import de.alexanderwolz.http.client.model.content.ContentResolver
+import de.alexanderwolz.http.client.model.content.ContentType
 import de.alexanderwolz.http.client.model.payload.Payload
 import de.alexanderwolz.http.client.model.token.AccessToken
 import java.io.File
@@ -24,7 +25,7 @@ interface HttpClient {
         private var httpMethod = HttpMethod.GET
         private var endpoint: URI? = null
         private val requestHeaders = HashMap<String, Set<String>>()
-        private var requestBody = Payload.EMPTY
+        private var requestBody: Payload<*> = Payload.EMPTY
         private var acceptTypes: Set<ContentType>? = null
         private var certificateBundle: CertificateBundle? = null
         private var certificateReference: CertificateReference? = null
@@ -32,6 +33,7 @@ interface HttpClient {
         private var accessToken: AccessToken? = null
         private var proxy: URI? = null
         private var verifyCert = true
+        private var resolver: ContentResolver? = null
 
         init {
             headers(
@@ -80,10 +82,14 @@ interface HttpClient {
             }
         }
 
-        fun body(payload: Payload) = apply {
+        fun body(payload: Payload<*>) = apply {
             this.requestBody = payload.also {
                 headers("Content-Type" to setOf(it.type.mediaType))
             }
+        }
+
+        fun resolver(resolver: ContentResolver) = apply {
+            this.resolver = resolver
         }
 
         fun accessToken(token: AccessToken) = apply {
@@ -103,11 +109,14 @@ interface HttpClient {
 
             if (Settings.library == Settings.LibraryType.OK_HTTP) {
                 return OkHttpClientWrapper(
-                    proxy, verifyCert, certificates,
+                    proxy,
+                    verifyCert,
+                    certificates,
                     httpMethod,
                     endpoint,
                     requestHeaders,
                     requestBody,
+                    resolver,
                     acceptTypes,
                     accessToken
                 )

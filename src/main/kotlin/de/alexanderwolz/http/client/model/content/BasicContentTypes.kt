@@ -1,8 +1,6 @@
-package de.alexanderwolz.http.client.model.content.type
+package de.alexanderwolz.http.client.model.content
 
 import de.alexanderwolz.http.client.model.Form
-import de.alexanderwolz.http.client.model.content.resolver.BasicContentResolver
-import de.alexanderwolz.http.client.model.content.resolver.ContentResolver
 import de.alexanderwolz.http.client.model.token.OAuthErrorResponse
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
 import kotlinx.serialization.json.JsonElement
@@ -10,8 +8,7 @@ import kotlin.reflect.KClass
 
 enum class BasicContentTypes(
     override val mediaType: String,
-    override val clazz: KClass<*>,
-    override val resolver: ContentResolver = BasicContentResolver(),
+    override val clazz: KClass<*>
 ) : ContentType {
     EMPTY("EMPTY_BODY", String::class),
     TEXT_PLAIN("text/plain", String::class),
