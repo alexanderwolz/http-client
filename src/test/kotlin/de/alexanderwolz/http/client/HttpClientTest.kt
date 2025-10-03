@@ -12,9 +12,6 @@ import de.alexanderwolz.http.client.model.payload.Payload
 import de.alexanderwolz.http.client.model.token.AccessToken
 import de.alexanderwolz.http.client.model.token.OAuthTokenResponse
 import de.alexanderwolz.http.client.util.MockUtils
-import de.alexanderwolz.http.client.util.MockUtils.CONTENT_PRODUCT_JSON
-import de.alexanderwolz.http.client.util.MockUtils.CONTENT_WRAPPED_PRODUCT_JSON
-import de.alexanderwolz.http.client.util.MockUtils.MEDIA_TYPE_PRODUCT
 import kotlinx.serialization.json.*
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.AfterEach
@@ -213,7 +210,7 @@ class HttpClientTest {
     }
 
     @Test
-    fun testJsonBinaryPost() {
+    fun testJsonStringPost() {
 
         MockUtils.startSimpleJsonServer(mockServer)
 
@@ -237,12 +234,13 @@ class HttpClientTest {
     }
 
     @Test
-    fun testGsonBinaryPost() {
+    fun testJsonBinaryPost() {
 
         MockUtils.startSimpleJsonServer(mockServer)
 
         val jsonString = "{\"name\":\"Dauerlutscher\",\"price\":1.99}"
-        val payload = Payload.create(BasicContentTypes.JSON_ELEMENT, jsonString.toByteArray())
+        val productJson = Json.parseToJsonElement(jsonString)
+        val payload = Payload.create(BasicContentTypes.JSON_ELEMENT, productJson)
 
         val httpClient = HttpClient.Builder()
             .userAgent(HttpClient::class.java.simpleName)
@@ -299,8 +297,32 @@ class HttpClientTest {
             .body(payload)
             .build()
         val response = httpClient.execute()
-        assertEquals(MEDIA_TYPE_PRODUCT, response.body.type.mediaType)
-        assertEquals(MEDIA_TYPE_PRODUCT, response.request.body.type.mediaType)
+        assertEquals(MockUtils.MEDIA_TYPE_PRODUCT, response.body.type.mediaType)
+        assertEquals(MockUtils.MEDIA_TYPE_PRODUCT, response.request.body.type.mediaType)
+    }
+
+    @Test
+    fun testGetWithCustomTypeProductContainer() {
+
+        MockUtils.startProductContainerServer(mockServer)
+
+        val type = CustomContentTypes.PRODUCT_CONTAINER
+        val product = Product("2", "Bananas")
+        val container = ProductContainer(product)
+        val payload = Payload.create(type, container, CustomContentResolver())
+        assertNotNull(payload)
+        assertEquals(container, payload.element)
+
+        val httpClient = HttpClient.Builder()
+            .userAgent(HttpClient::class.java.simpleName)
+            .method(HttpMethod.POST)
+            .endpoint(mockServer.url("/endpoint").toUri())
+            .accept(CustomContentTypes.PRODUCT_CONTAINER)
+            .body(payload)
+            .build()
+        val response = httpClient.execute()
+        assertEquals(MockUtils.MEDIA_TYPE_PRODUCT_CONTAINER, response.body.type.mediaType)
+        assertEquals(MockUtils.MEDIA_TYPE_PRODUCT_CONTAINER, response.request.body.type.mediaType)
     }
 
     @Test
@@ -332,13 +354,10 @@ class HttpClientTest {
         val response = client.execute()
         assertNotNull(response)
         assertEquals(CustomContentTypes.WRAPPED_PRODUCT, response.body.type)
-        assertEquals(CONTENT_WRAPPED_PRODUCT_JSON, response.body.bytes.decodeToString())
+        assertEquals(MockUtils.CONTENT_WRAPPED_JSON, response.body.bytes.decodeToString())
 
-
-        val expectedPayload = Json.decodeFromString<Product>(CONTENT_PRODUCT_JSON)
-
+        val expectedPayload = Json.decodeFromString<Product>(MockUtils.CONTENT_PRODUCT_JSON)
         assertEquals(expectedPayload, response.body.element)
-
     }
 
     @Test

@@ -10,20 +10,20 @@ import kotlin.reflect.KClass
 class CustomContentResolver : AbstractContentResolver() {
 
     override fun wrap(parentClazz: KClass<*>, child: Any): Any {
-        if (child is Product) return WrappedProduct(child)
+        if (child is Product) return ProductContainer(child)
         throw NoSuchElementException("Unsupported child element $child")
     }
 
     override fun extract(parentClazz: KClass<*>, parent: Any): Any {
         if (parent::class == parentClazz) {
-            if (parent is WrappedProduct) return parent.element
+            if (parent is ProductContainer) return parent.element
             throw NoSuchElementException("Unsupported parent element $parent")
         }
         return parent
     }
 
     override fun serialize(clazz: KClass<*>, element: Any): ByteArray {
-        if (element is WrappedProduct) {
+        if (element is ProductContainer) {
             return Json.encodeToString(element).toByteArray()
         }
         if (element is Product) {

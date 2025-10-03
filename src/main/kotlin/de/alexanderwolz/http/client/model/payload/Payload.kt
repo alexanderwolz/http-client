@@ -17,12 +17,12 @@ interface Payload<T> {
             override val bytes = element.toByteArray()
         }
 
-        internal fun create(type: ContentType, bytes: ByteArray, resolver: ContentResolver? = null): Payload<Any> {
+        fun create(type: ContentType, bytes: ByteArray, resolver: ContentResolver? = null): Payload<Any> {
             return object : AbstractPayload<Any>(type, bytes = bytes, customResolver = resolver) {}
         }
 
-        fun <T : Any> create(type: ContentType, element: T, resolver: ContentResolver? = null): Payload<T> {
-            return object : AbstractPayload<T>(type, element = element, customResolver = resolver) {}
+        fun create(type: ContentType, element: Any, resolver: ContentResolver? = null): Payload<Any> {
+            return object : AbstractPayload<Any>(type, element = element, customResolver = resolver) {}
         }
     }
 }

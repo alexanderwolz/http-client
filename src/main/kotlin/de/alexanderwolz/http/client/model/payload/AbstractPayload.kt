@@ -20,6 +20,7 @@ abstract class AbstractPayload<T : Any> : Payload<T> {
     override lateinit var bytes: ByteArray
         protected set
 
+    //TODO this represents the type.clazz element
     override lateinit var element: T
         protected set
 
@@ -86,24 +87,23 @@ abstract class AbstractPayload<T : Any> : Payload<T> {
                 //probably not a parent class
                 deserialize(type.clazz as KClass<Any>, bytes, customResolver) as T
             }
-            val isParent = element::class == type.wrappingClazz
-            if (isParent) {
-                this.element = element
-                this.bytes = serialize(type.wrappingClazz as KClass<Any>, this.element, customResolver)
-            } else {
-                this.element = wrap(wrappingClazz, element, customResolver) as T
-                this.bytes = serialize(wrappingClazz, this.element, customResolver)
-            }
+            handleWrappedElement(wrappingClazz, element, customResolver)
         }
         if (element != null) {
-            val isParent = element::class == type.wrappingClazz
-            if (isParent) {
-                this.element = element
-                this.bytes = serialize(type.wrappingClazz as KClass<Any>, this.element, customResolver)
-            } else {
-                this.element = wrap(wrappingClazz, element, customResolver) as T
-                this.bytes = serialize(wrappingClazz, this.element, customResolver)
-            }
+            handleWrappedElement(wrappingClazz, element, customResolver)
+        }
+    }
+
+    private fun handleWrappedElement(wrappingClazz: KClass<*>, element: Any, customResolver: ContentResolver?) {
+        val isParent = element::class == type.wrappingClazz
+        if (isParent) {
+            val parent = element
+            this.bytes = serialize(type.wrappingClazz as KClass<Any>, parent, customResolver)
+            this.element = extract(wrappingClazz, parent, customResolver)
+        } else {
+            val parent = wrap(wrappingClazz, element as T, customResolver)
+            this.bytes = serialize(wrappingClazz, parent, customResolver)
+            this.element = element
         }
     }
 

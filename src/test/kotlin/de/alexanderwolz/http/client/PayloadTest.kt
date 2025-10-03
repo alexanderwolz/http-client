@@ -3,7 +3,7 @@ package de.alexanderwolz.http.client
 import de.alexanderwolz.http.client.model.CustomContentResolver
 import de.alexanderwolz.http.client.model.CustomContentTypes
 import de.alexanderwolz.http.client.model.Product
-import de.alexanderwolz.http.client.model.WrappedProduct
+import de.alexanderwolz.http.client.model.ProductContainer
 import de.alexanderwolz.http.client.model.payload.Payload
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -15,73 +15,84 @@ import kotlin.test.assertNotNull
 class PayloadTest {
 
     @Test
-    fun testCustomPayload() {
+    fun testCustomPayloadProduct() {
         val product = Product("5", "Boxer Shorts")
-        val payload = Payload.create(CustomContentTypes.PRODUCT, product, CustomContentResolver())
-        assertNotNull(payload)
-        assertEquals(Product::class as KClass<*>, payload.element::class as KClass<*>)
-        assertEquals(product, payload.element)
-    }
+        val productJson = Json.encodeToString(product)
 
-    //INFO: if parent class is specified, the payload shall be based on the parent class, even though we add a child element
+        val payloadElement = Payload.create(CustomContentTypes.PRODUCT, product, CustomContentResolver())
+        assertNotNull(payloadElement)
+        assertEquals(Product::class as KClass<*>, payloadElement.element::class)
+        assertEquals(product, payloadElement.element)
 
-    @Test
-    fun testCustomWrappedPayloadWithParentElement() {
-        val product = Product("8", "Bananas")
-        val wrappedProduct = WrappedProduct(product)
-        val payload = Payload.create(CustomContentTypes.WRAPPED_PRODUCT, wrappedProduct, CustomContentResolver())
-        assertNotNull(payload)
-        assertEquals(WrappedProduct::class as KClass<*>, payload.element::class as KClass<*>)
+        val payloadBinary =
+            Payload.create(CustomContentTypes.PRODUCT, productJson.toByteArray(), CustomContentResolver())
+        assertNotNull(payloadBinary)
+        assertEquals(Product::class as KClass<*>, payloadBinary.element::class)
+        assertEquals(product, payloadBinary.element)
     }
 
     @Test
-    fun testCustomWrappedPayloadWithChildElement() {
-        val product = Product("8", "Bananas")
-        val payload = Payload.create(CustomContentTypes.WRAPPED_PRODUCT, product, CustomContentResolver())
-        assertNotNull(payload)
-        assertEquals(WrappedProduct::class as KClass<*>, payload.element::class as KClass<*>)
+    fun testCustomPayloadProductContainer() {
+        val product = Product("5", "Boxer Shorts")
+        val container = ProductContainer(product)
+        val containerJson = Json.encodeToString(container)
+
+        val payloadElement = Payload.create(CustomContentTypes.PRODUCT_CONTAINER, container, CustomContentResolver())
+        assertNotNull(payloadElement)
+        assertEquals(ProductContainer::class as KClass<*>, payloadElement.element::class)
+        assertEquals(container, payloadElement.element)
+
+        val payloadBinary =
+            Payload.create(CustomContentTypes.PRODUCT_CONTAINER, containerJson.toByteArray(), CustomContentResolver())
+        assertNotNull(payloadBinary)
+        assertEquals(ProductContainer::class as KClass<*>, payloadBinary.element::class)
+        assertEquals(container, payloadBinary.element)
     }
 
     @Test
-    fun testPayloadByBinaryWithWrappingClass() {
+    fun testCustomPayloadWrapperClass() {
 
         val product = Product("8", "Bananas")
         val productJson = Json.encodeToString(product)
-        val wrappedProduct = WrappedProduct(product)
+        val wrappedProduct = ProductContainer(product)
         val wrappedProductJson = Json.encodeToString(wrappedProduct)
 
 
         //TEST PARENT
-        val payload = Payload.create(CustomContentTypes.WRAPPED_PRODUCT, wrappedProduct, CustomContentResolver())
-        assertNotNull(payload)
-        assertEquals(CustomContentTypes.WRAPPED_PRODUCT, payload.type)
-        assertEquals(wrappedProduct, payload.element)
+        val payloadElement = Payload.create(CustomContentTypes.WRAPPED_PRODUCT, wrappedProduct, CustomContentResolver())
+        assertNotNull(payloadElement)
+        assertEquals(CustomContentTypes.WRAPPED_PRODUCT, payloadElement.type)
+        assertEquals(product, payloadElement.element)
+        assertEquals(wrappedProductJson, payloadElement.bytes.decodeToString())
 
         //TEST PARENT BINARY
-        val payload2 = Payload.create(
+        val payloadBinary = Payload.create(
             CustomContentTypes.WRAPPED_PRODUCT,
             wrappedProductJson.toByteArray(),
             CustomContentResolver()
         )
-        assertNotNull(payload2)
-        assertEquals(CustomContentTypes.WRAPPED_PRODUCT, payload2.type)
-        assertEquals(wrappedProduct, payload2.element)
+        assertNotNull(payloadBinary)
+        assertEquals(CustomContentTypes.WRAPPED_PRODUCT, payloadBinary.type)
+        assertEquals(product, payloadBinary.element)
+        assertEquals(wrappedProductJson, payloadBinary.bytes.decodeToString())
 
         //TEST CHILD
-        val payload3 = Payload.create(CustomContentTypes.WRAPPED_PRODUCT, product, CustomContentResolver())
-        assertNotNull(payload3)
-        assertEquals(CustomContentTypes.WRAPPED_PRODUCT, payload3.type)
-        assertEquals(wrappedProduct as Any, payload3.element as Any)
+        val payloadElementChild = Payload.create(CustomContentTypes.WRAPPED_PRODUCT, product, CustomContentResolver())
+        assertNotNull(payloadElementChild)
+        assertEquals(CustomContentTypes.WRAPPED_PRODUCT, payloadElementChild.type)
+        assertEquals(product as Any, payloadElementChild.element)
+        assertEquals(wrappedProductJson, payloadElementChild.bytes.decodeToString())
 
         //TEST CHILD BINARY
-        val payload4 = Payload.create(
+        val payloadBinaryChild = Payload.create(
             CustomContentTypes.WRAPPED_PRODUCT,
             productJson.toByteArray(),
             CustomContentResolver()
         )
-        assertNotNull(payload4)
-        assertEquals(CustomContentTypes.WRAPPED_PRODUCT, payload4.type)
-        assertEquals(wrappedProduct as Any, payload4.element)
+        assertNotNull(payloadBinaryChild)
+        assertEquals(CustomContentTypes.WRAPPED_PRODUCT, payloadBinaryChild.type)
+        assertEquals(product as Any, payloadBinaryChild.element)
+        assertEquals(wrappedProductJson, payloadBinaryChild.bytes.decodeToString())
     }
 
 }
