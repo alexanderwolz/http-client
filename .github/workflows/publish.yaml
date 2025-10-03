@@ -9,6 +9,9 @@ jobs:
   publish:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write  #We need to upload jar artifacts zum Release
+
     steps:
       - uses: actions/checkout@v4
 
@@ -33,8 +36,7 @@ jobs:
         run: ./gradlew build --no-daemon --stacktrace
 
       - name: Publish to Maven Central
-        run: ./gradlew publishToSonatype --dry-run --no-daemon --stacktrace
-        #run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --no-daemon --stacktrace
+        run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --no-daemon --stacktrace
         env:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
