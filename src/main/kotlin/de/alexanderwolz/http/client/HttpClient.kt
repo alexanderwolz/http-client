@@ -1,7 +1,7 @@
 package de.alexanderwolz.http.client
 
-import de.alexanderwolz.commons.util.CertificateUtils
-import de.alexanderwolz.commons.util.StringUtils
+import de.alexanderwolz.commons.util.certificate.CertificateUtils
+import de.alexanderwolz.commons.util.string.StringUtils
 import de.alexanderwolz.http.client.instance.OkHttpClientWrapper
 import de.alexanderwolz.http.client.instance.Settings
 import de.alexanderwolz.http.client.model.HttpMethod
