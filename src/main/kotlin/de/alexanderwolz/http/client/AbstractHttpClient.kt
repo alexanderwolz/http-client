@@ -1,7 +1,7 @@
 package de.alexanderwolz.http.client
 
 import de.alexanderwolz.commons.log.Logger
-import de.alexanderwolz.commons.util.StringUtils
+import de.alexanderwolz.commons.util.string.StringUtils
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.model.HttpMethod

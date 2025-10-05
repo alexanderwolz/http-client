@@ -1,6 +1,6 @@
 package de.alexanderwolz.http.client
 
-import de.alexanderwolz.commons.util.CertificateUtils
+import de.alexanderwolz.commons.util.certificate.CertificateUtils
 import de.alexanderwolz.http.client.exception.HttpExecutionException
 import de.alexanderwolz.http.client.exception.Reason
 import de.alexanderwolz.http.client.instance.OkHttpClientWrapper

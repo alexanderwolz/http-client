@@ -29,8 +29,7 @@ kotlin {
 }
 
 dependencies {
-    implementation("de.alexanderwolz:commons-log:1.1.0")
-    implementation("de.alexanderwolz:commons-util:1.2.1")
+    implementation("de.alexanderwolz:commons-util:1.4.6")
     implementation("com.squareup.okhttp3:okhttp:5.1.0")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.82")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
