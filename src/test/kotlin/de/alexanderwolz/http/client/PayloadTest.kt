@@ -63,8 +63,7 @@ class PayloadTest {
         val productJson = Json.encodeToString(product)
         val wrappedProduct = ProductContainer(product)
         val wrappedProductJson = Json.encodeToString(wrappedProduct)
-
-
+        
         //TEST PARENT
         val payloadElement = Payload.create(CustomContentTypes.WRAPPED_PRODUCT, wrappedProduct, CustomContentResolver())
         assertNotNull(payloadElement)
